@@ -1,16 +1,45 @@
-/*************************************************************************
- * A simple program to wipe log files of all entries matching specific   *
- * criteria, e.g. username or host. The most common way of covering      *
- * one's tracks is simply to delete all the log files, but this makes it *
- * obvious to administrators that something is going on. Some log wiping *
- * programs simply zero out the matching entries, but there are security *
- * programs that check for zeroed out log entries and alert the          *
- * administrator if detected. Instead, this program constructs a new log *
- * file which completely omits the matching log entries in order to      *
- * leave no evidence (or as little as possible) of tampering. It should  *
- * go without saying, but since this program modifies log files, it must *
- * be run as root.                                                       *
- *************************************************************************/
+/*****************************************************************************
+ * Copyright 2018 Bryan Hawkins <spcnvdrr@protonmail.com>                    *
+ *                                                                           *
+ * Redistribution and use in source and binary forms, with or without        *
+ * modification, are permitted provided that the following conditions        *
+ * are met:                                                                  *
+ *                                                                           *
+ * 1. Redistributions of source code must retain the above copyright notice, *
+ * this list of conditions and the following disclaimer.                     *
+ *                                                                           *
+ * 2. Redistributions in binary form must reproduce the above copyright      *
+ * notice, this list of conditions and the following disclaimer in the       *
+ * documentation and/or other materials provided with the distribution.      *
+ *                                                                           *
+ * 3. Neither the name of the copyright holder nor the names of its          *
+ * contributors may be used to endorse or promote products derived from      *
+ * this software without specific prior written permission.                  *
+ *                                                                           *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS       *
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT         *
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR     *
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT      *
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,    *
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED  *
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR    *
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF    *
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING      *
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
+ *                                                                           *
+ * A simple program to wipe log files of all entries matching specific       *
+ * criteria, e.g. username or host. The most common way of covering          *
+ * one's tracks is simply to delete all the log files, but this makes it     *
+ * obvious to administrators that something is going on. Some log wiping     *
+ * programs simply zero out the matching entries, but there are security     *
+ * programs that check for zeroed out log entries and alert the              *
+ * administrator if detected. Instead, this program constructs a new log     *
+ * file which completely omits the matching log entries in order to          *
+ * leave no evidence (or as little as possible) of tampering. It should      *
+ * go without saying, but since this program modifies log files, it must     *
+ * be run as root.                                                           *
+ *****************************************************************************/
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -628,8 +657,12 @@ static void wipe_auth(const char *username, const char *logfile){
 	return;
 }
 
-/** The main doo-dad
- * TODO: Wipe auth.log entries that contain sudo or su?
+/**
+ * Usage: redact [-abfhlptuvVw] [-i host]... USERNAME
+ * Wipe USERNAME from the system logs.
+ * Use -a to wipe all the log files redact knows about or
+ * specify the log files individually by using the other options.
+ *
  *
  */
 int main(int argc, char *argv[]){
