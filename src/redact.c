@@ -279,7 +279,8 @@ static void wipe_utmp(const char *username, const char *logfile){
 	 * file. */
 	while(fread(&ut, utsize, 1, fin) == 1){
 		num++;				/* total number of entries found */
-
+		/* Note this if statement also returns true if ut_user is a
+		 * NUL string, meaning all entries with empty ut_user are removed */
 		if(strncmp(ut.ut_user, username, strlen(ut.ut_user)) == 0){
 			found++;		/* number of matching entries */
 			continue;
