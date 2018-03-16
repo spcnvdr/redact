@@ -9,7 +9,9 @@ redact (0.6.1); urgency=low;
 
 redact (0.6.0); urgency=low;
   * Added a function to generate temporary file names in the same directory
-    as a given log file.
+    as a given log file. This way we do not have to change directories in 
+    order to avoid failing to replace the log file because rename() cannot
+    move files across different partitions. 
   * Changed the way that temporary files are created. Temporary files are
     now created with random names.
   * Changed several functions to take the log file as a parameter instead
