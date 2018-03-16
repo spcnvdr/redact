@@ -2,18 +2,18 @@
 
 Redact is a simple Unix/Linux program to remove a user's activity from
 the common system log files. This program is different than other log
-wipers currently available in that it avoids common pitfalls when 
+wipers currently available in that it avoids common pitfalls when
 destroying log entries. Some wipe programs simply overwrite the matching
 log entries with zeros. However, there are programs that check the integrity
 of the system's log files by searching for these NUL entries and alert
 the administrator when found. Besides it just looks plain suspicious if
 the log files are examined with a more low level tool. NUL log entries are
 avoided by creating a new log file and entirely omitting specific entries
-which leaves no trace that the log files have been tampered with. The same 
-permissions and user/group owners are applied to the new log file to avoid 
+which leaves no trace that the log files have been tampered with. The same
+permissions and user/group owners are applied to the new log file to avoid
 incorrect permissions or owners. Finally, the old log file is replaced with
-the newly sanitized one. Below is a list of the common Linux log files that 
-this program currently is able to sanitize. 
+the newly sanitized one. Below is a list of the common Linux log files that
+this program currently is able to sanitize.
 
 **Common log file location - Description**
 
@@ -33,13 +33,13 @@ this program currently is able to sanitize.
 
 **What Redact does not do**
 
-Note that while this program modifies the current log files to remove all 
+Note that while this program modifies the current log files to remove all
 traces of a given username/host it does NOT modify old caches of those log
 files. For example, this program does not and cannot wipe gzipped backups
 of old log files created by logrotate. Also, there maybe multiple log files
 because old copies are renamed in the format LOGNAME.1 and these files
 are not wiped by default either. However, these files can be wiped by setting
-the appropriate constants in the program (WTMPFILE, UTMPFILE, etc.) and 
+the appropriate constants in the program (WTMPFILE, UTMPFILE, etc.) and
 recompiling it. Finally, this program currently does not support wiping log
 reports, such as wtmp.report that are sometimes generated.
 
@@ -52,10 +52,10 @@ Get a copy of the source code and change into the redact directory.
 
 Then set the location of the relevant log files by editing the defines
 at the top of the redact.c file which is located in the src directory.
-If a defined log file is missing, point it at a blank regualr text file 
+If a defined log file is missing, point it at a blank regular text file
 you created somewhere. The default definitions should work for most
-Linux distributions, but some may need to be changed. Use your favorite 
-text editor to do so. 
+Linux distributions, but some may need to be changed. Use your favorite
+text editor to do so.
 
     vim ./src/redact.c
 
@@ -76,17 +76,22 @@ pertaining to the user named john
 **Installing**
 
 There is not install target in the Makefile to install the binary on a system.
-This is intentional. 
+This is intentional.
+
+**To Do**
+
+- [ ] Add an option to allow logs to be wiped by tty 
+- [ ] Support UNIX operating systems (BSD, ...) in addition to Linux
+
 
 **Versioning**
 
-This project uses semantic versioning 2.0. Version numbers follow the 
-MAJOR.MINOR.PATCH format. 
+This project uses semantic versioning 2.0. Version numbers follow the
+MAJOR.MINOR.PATCH format.
 
 **License**
 
-This project is licensed under the 3-Clause BSD License also known as the 
+This project is licensed under the 3-Clause BSD License also known as the
 *"New BSD License"* or the *"Modified BSD License"*. A copy of the license
-can be found in the LICENSE file. A copy can also be found at the 
+can be found in the LICENSE file. A copy can also be found at the
 [Open Source Institute](https://opensource.org/licenses/BSD-3-Clause)
-
