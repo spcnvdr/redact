@@ -1,0 +1,116 @@
+redact (0.6.1); urgency=low;
+  * Changed error messages to be more helpful and verbose.
+  * Changed the wipe_* functions to return void and exit on unrecoverable
+    error.
+  * Fixed a bug in that caused the program to exit prematurely due to a
+    misplaced call to exit().
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Tue, 27 Feb 2018 10:55:06 -0600
+
+redact (0.6.0); urgency=low;
+  * Added a function to generate temporary file names in the same directory
+    as a given log file.
+  * Changed the way that temporary files are created. Temporary files are
+    now created with random names.
+  * Changed several functions to take the log file as a parameter instead
+    of relying on the pre-processor defines.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Sun, 25 Feb 2018 06:12:48 -0600
+
+redact (0.5.2); urgency=low;
+  * Added additional error checking.
+  * Cleaned up comments in the code.
+  * Fixed a bug in wipe_fail which printed out incorrect information when
+    verbose mode is enabled.
+  * Fixed a bug in wipe_auth() that caused some log entries to not be wiped
+  * Changed the name of the args structure member acct to acctlog to
+    make the naming of args members more consistent.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Wed, 21 Feb 2018 12:22:09 -0600
+
+redact (0.5.1); urgency=low;
+  * Fixed an error in the wipe_last() where it failed to wipe every
+    matching entry in the lastlog file.
+  * Fixed a bug in wipe_last() that wiped every lastlog entry when using
+    the -i option which wipes all entries that were made from a specific
+    host.
+  * Fixed an off-by-one bug in wipe_last() in which it printed the wrong
+    number of records found when in verbose mode and a host specified.
+  * Added error checking to fputs() calls.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Tue, 20 Feb 2018 08:19:52 -0600
+
+redact (0.5.0); urgency=low;
+  * Changed several functions, so that if an unrecoverable error occurs
+    while wiping a log file, we delete all temporary files created during
+    the process. This ensures that if an error occurs, we do not leave any
+    temporary log files hanging around that were in the process of being
+    redacted.
+  * Removed unnecessary variables to decrease stack usage in functions.
+  * Added an option to wipe the btmp log file which logs failed
+    authentication attempts.
+  * Added an option and function to wipe the auth.log log file by removing
+    all entries that contain the given username or the user's UID. The
+    auth.log file contains system authorization information.
+  * Updated the README.md file.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com>  Sun, 18 Feb 2018 07:47:30 -0600
+
+redact (0.4.0); urgency=low;
+  * Added a function to wipe systems's process accounting log file.
+  * Added verbose output for all the functions that wipe files.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Sat, 17 Feb 2018 12:40:59 -0600
+
+redact (0.3.1); urgency=low;
+  * Changed the names of several functions to use a more consistent pattern
+    of function names throughout the program.
+  * Fixed a logic error where the condition could never be true.
+  * Changed the get_userid() function to put the user ID in one
+    of the arguments and return an integer indicating if an error occurred.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Fri, 16 Feb 2018 12:00:15 -0600
+
+redact (0.3.0); urgency=low;
+  * Added a function and command line option to wipe the faillog log file.
+    The only way to wipe this log file is by username, so if the host
+    command-line option is used, it will be ignored by this function.
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Thu, 15 Feb 2018 20:57:17 -0600
+
+redact (0.2.0); urgency=low;
+  * Added new command line options and changed program to allow the user
+    to specify which log files should be modified at run time.
+  * Remove reliance on the UT_HOSTSIZE and UT_NAMESIZE constants as not
+    every operating system provides them, and this is not their original
+    purpose.
+  * Removed the preprocessor defines that allowed compilation on FreeBSD
+    as there is a lot of work to make the program run on both FreeBSD and
+    Linux. This feature will be re-implemented at a later date.
+  * Modified the wipe_utmp function so that a single function (wipe_utmp)
+    is used to wipe multiple log files (wtmp, utmp, btmp) provided they
+    use the utmp data structure.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Tue, 13 Feb 2018 15:13:37 -0600
+
+redact (0.1.0); urgency=medium:
+  * Added several #ifdef statements to hopefully enable this program to
+    successfully compile and run on FreeBSD systems. In 2010, FreeBSD
+    removed utmp.h and related data structures and replaced them with
+    utmpx.h and struct utmpx data structures.
+
+  -- Bryan Hawkins <northernhze@gmail.com> Mon, 12 Feb 2018 21:07:01 -0600
+
+redact (0.0.2); urgency=low:
+  * Added a function to remove log entries from the lastlog log file that
+    match either a given user name or host IP address.
+  * Fixed a bug in the wipe_utmp() function that failed to replace the old
+    log file with the new one. This occurred on Linux because the utmp log
+    is located in /run which is a tmpfs partition and rename fails when
+    moving files between partitions. To fix, we simply change directories
+    before creating the temporary file and change back to our old working
+    directory when finished. An alternative would be to use the system()
+    function and rely on the system's mv command to replace utmp.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Sat, 10 Feb 2018 12:15:45 -0600
+
+use the 'date -R' command to make the date string.
