@@ -48,7 +48,7 @@
 #include <time.h>
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.6.1";
+static char *version = "redact 0.6.2";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -163,17 +163,19 @@ static int clone_attrs(const char *src, const char *dst){
  *
  */
 static int move_file(const char *src, const char *dst){
-	int ret;
 
 	/* This unlink is not needed, but done just to be sure */
-	if((ret = unlink(dst)) < 0){
+	if(unlink(dst) < 0){
 		perror("unlink() error");
 		return(-1);
 	}
-	if((ret = rename(src, dst)) < 0)
-		perror("rename() error");
 
-	return(ret);
+	if(rename(src, dst) < 0){
+		perror("rename() error");
+		return(-1);
+	}
+
+	return(0);
 }
 
 /** Get the the directory component of a pathname
@@ -203,9 +205,8 @@ static char *get_dir(char *pathname){
  * @param username The user to find the UID of
  * @param id The variable to store the user-id in
  * @returns 0 on success, -1 on error
- * We store the UID in a passed argument because there is
- * no reliable way to tell the difference between a valid
- * UID and an error condition.
+ * We store the UID in a passed argument because it can be
+ * tricky differentiating between an error code and a valid UID
  *
  */
 static int get_userid(const char *username, uid_t *id){
@@ -219,6 +220,7 @@ static int get_userid(const char *username, uid_t *id){
 			perror("getpwnam() error");
 			return(-1);
 		}
+
 		fprintf(stderr, "getpwnam() error: failed to find the user ID for: %s\n",
 				username);
 		return(-1);
@@ -238,6 +240,7 @@ static int get_userid(const char *username, uid_t *id){
  */
 static char *gen_tmpath(const char *logfile){
 	char *ptr, *tmpath;
+
 	if((ptr = strdup(logfile)) == NULL){
 		perror("strdup() error");
 		return(NULL);
@@ -267,7 +270,7 @@ static char *gen_tmpath(const char *logfile){
 /** Remove all entries containing username from a log file
  * that uses utmp data structures, e.g. wtmp, utmp, etc.
  * @param username The username to search entries for
- * @param path The path of the utmp/wtmp/btmp file to wipe
+ * @param logfile The path of the utmp/wtmp/btmp file to wipe
  *
  */
 static void wipe_utmp(const char *username, const char *logfile){
@@ -302,6 +305,7 @@ static void wipe_utmp(const char *username, const char *logfile){
 	 * file. */
 	while(fread(&ut, utsize, 1, fin) == 1){
 		num++;				/* total number of entries found */
+
 		/* Note this if statement also returns true if ut_user is a
 		 * NUL string, meaning all entries with empty ut_user are removed */
 		if(strncmp(ut.ut_user, username, strlen(ut.ut_user)) == 0){
@@ -363,9 +367,10 @@ static void wipe_utmp(const char *username, const char *logfile){
 
 /** Wipe the lastlog file of entries containing host or username
  * @param username The username to wipe
+ * @param logfile The path of the lastlog log file to wipe
  *
  */
-static void wipe_last(const char *username){
+static void wipe_last(const char *username, const char *logfile){
 	FILE *fin;
 	uid_t userid;
 	size_t num = 0;
@@ -378,8 +383,8 @@ static void wipe_last(const char *username){
 		exit(EXIT_FAILURE);
 
 	/* Open the lastlog log file */
-	if((fin = fopen(LASTLOGFILE, "r+")) == NULL){
-		fprintf(stderr, "error opening %s log file: %s\n", LASTLOGFILE,
+	if((fin = fopen(logfile, "r+")) == NULL){
+		fprintf(stderr, "error opening %s log file: %s\n", logfile,
 				strerror(errno));
 		return;
 	}
@@ -434,15 +439,16 @@ static void wipe_last(const char *username){
 
 /** Wipe username from the failed login log file
  * @param username The username to wipe from the log file
+ * @param logfile The path of the faillog log file to wipe
  *
  */
-static void wipe_fail(const char *username){
+static void wipe_fail(const char *username, const char *logfile){
 	FILE *fin;
 	uid_t userid;
 	struct faillog fbuf = {0};
 	size_t flsize = sizeof(struct faillog);
 
-	if((fin = fopen(FAILLOGFILE, "r+")) == NULL){
+	if((fin = fopen(logfile, "r+")) == NULL){
 		fprintf(stderr, "error opening %s log file: %s\n", FAILLOGFILE,
 				strerror(errno));
 		return;
@@ -496,19 +502,21 @@ static void wipe_acct(const char *username, const char *logfile){
 		exit(EXIT_FAILURE);
 	}
 
-	if((tmpfile = gen_tmpath(logfile)) == NULL){
-		exit(EXIT_FAILURE);
-	}
-
 	if((fin = fopen(logfile, "r")) == NULL){
 		fprintf(stderr, "error opening %s log file: %s\n", logfile,
 				strerror(errno));
 		return;
 	}
 
+	/* Generate a temporary file name */
+	if((tmpfile = gen_tmpath(logfile)) == NULL){
+		exit(EXIT_FAILURE);
+	}
+
 	if((fout = fopen(tmpfile, "w")) == NULL){
 		fprintf(stderr, "error opening %s temporary file: %s\n", tmpfile,
 				strerror(errno));
+		free(tmpfile);
 		fclose(fin);
 		exit(EXIT_FAILURE);
 	}
@@ -584,14 +592,15 @@ static void wipe_auth(const char *username, const char *logfile){
 	/* Convert user ID into a string */
 	snprintf(idstr, 50, "%u", userid);
 
-	if((tmpfile = gen_tmpath(logfile)) == NULL){
-		exit(EXIT_FAILURE);
-	}
-
 	if((fin = fopen(logfile, "r")) == NULL){
 		fprintf(stderr, "error opening %s log file: %s\n", logfile,
 						strerror(errno));
 		return;
+	}
+
+	/* Generate temporary file name */
+	if((tmpfile = gen_tmpath(logfile)) == NULL){
+		exit(EXIT_FAILURE);
 	}
 
 	if((fout = fopen(tmpfile, "w")) == NULL){
@@ -755,8 +764,8 @@ int main(int argc, char *argv[]){
 		wipe_utmp(optflags.username, UTMPFILE);
 		wipe_utmp(optflags.username, WTMPFILE);
 		wipe_utmp(optflags.username, BTMPFILE);
-		wipe_last(optflags.username);
-		wipe_fail(optflags.username);
+		wipe_last(optflags.username, LASTLOGFILE);
+		wipe_fail(optflags.username, FAILLOGFILE);
 		wipe_acct(optflags.username, ACCTFILE);
 		wipe_auth(optflags.username, AUTHFILE);
 		return(0);
@@ -775,10 +784,10 @@ int main(int argc, char *argv[]){
 		wipe_utmp(optflags.username, BTMPFILE);
 	}
 	if(optflags.lastlog){
-		wipe_last(optflags.username);
+		wipe_last(optflags.username, LASTLOGFILE);
 	}
 	if(optflags.faillog){
-		wipe_fail(optflags.username);
+		wipe_fail(optflags.username, FAILLOGFILE);
 	}
 	if(optflags.acctlog){
 		wipe_acct(optflags.username, ACCTFILE);

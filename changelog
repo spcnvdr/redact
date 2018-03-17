@@ -1,3 +1,13 @@
+redact (0.6.2); urgency=low;
+  * Minor code improvements and clean up.
+  * Improved the project's documentation.
+  * Fixed a bug in wipe_acct() where memory was not freed if fopen() 
+    failed to open the log file. 
+  * Changed several functions to make them easier to be re-used in future 
+    projects.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Sat, 17 Mar 2018 15:55:02 -0500
+
 redact (0.6.1); urgency=low;
   * Changed error messages to be more helpful and verbose.
   * Changed the wipe_* functions to return void and exit on unrecoverable
@@ -59,7 +69,7 @@ redact (0.5.0); urgency=low;
   -- Bryan Hawkins <spcnvdrr@protonmail.com>  Sun, 18 Feb 2018 07:47:30 -0600
 
 redact (0.4.0); urgency=low;
-  * Added a function to wipe systems's process accounting log file.
+  * Added a function to wipe the system's process accounting log file.
   * Added verbose output for all the functions that wipe files.
 
   -- Bryan Hawkins <spcnvdrr@protonmail.com> Sat, 17 Feb 2018 12:40:59 -0600
