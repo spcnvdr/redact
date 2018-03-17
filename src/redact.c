@@ -29,14 +29,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
  *                                                                           *
  * A simple program to wipe log files of all entries matching specific       *
- * criteria, e.g. username or host. The most common way of covering          *
- * one's tracks is simply to delete all the log files, but this makes it     *
- * obvious to administrators that something is going on. Some log wiping     *
- * programs simply zero out the matching entries, but there are security     *
- * programs that check for zeroed out log entries and alert the              *
- * administrator if detected. Instead, this program constructs a new log     *
- * file which completely omits the matching log entries in order to          *
- * leave no evidence (or as little as possible) of tampering. It should      *
+ * criteria, e.g. username or host. This program constructs a new log        *
+ * file which completely omits the matching log entries. It should           *
  * go without saying, but since this program modifies log files, it must     *
  * be run as root.                                                           *
  *****************************************************************************/
@@ -287,7 +281,7 @@ static void wipe_utmp(const char *username, const char *logfile){
 	if((fin = fopen(logfile, "r")) == NULL){
 		fprintf(stderr, "error opening %s log file: %s\n", logfile,
 				strerror(errno));
-		exit(EXIT_FAILURE);
+		return;
 	}
 
 	if((tmpfile = gen_tmpath(logfile)) == NULL){
@@ -387,7 +381,7 @@ static void wipe_last(const char *username){
 	if((fin = fopen(LASTLOGFILE, "r+")) == NULL){
 		fprintf(stderr, "error opening %s log file: %s\n", LASTLOGFILE,
 				strerror(errno));
-		exit(EXIT_FAILURE);
+		return;
 	}
 
 	if(optflags.host != NULL){
@@ -451,7 +445,7 @@ static void wipe_fail(const char *username){
 	if((fin = fopen(FAILLOGFILE, "r+")) == NULL){
 		fprintf(stderr, "error opening %s log file: %s\n", FAILLOGFILE,
 				strerror(errno));
-		exit(EXIT_FAILURE);
+		return;
 	}
 
 	/* Note that faillog does not record what host the failed login
@@ -509,7 +503,7 @@ static void wipe_acct(const char *username, const char *logfile){
 	if((fin = fopen(logfile, "r")) == NULL){
 		fprintf(stderr, "error opening %s log file: %s\n", logfile,
 				strerror(errno));
-		exit(EXIT_FAILURE);
+		return;
 	}
 
 	if((fout = fopen(tmpfile, "w")) == NULL){
@@ -597,7 +591,7 @@ static void wipe_auth(const char *username, const char *logfile){
 	if((fin = fopen(logfile, "r")) == NULL){
 		fprintf(stderr, "error opening %s log file: %s\n", logfile,
 						strerror(errno));
-		exit(EXIT_FAILURE);
+		return;
 	}
 
 	if((fout = fopen(tmpfile, "w")) == NULL){
