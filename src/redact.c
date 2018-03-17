@@ -30,9 +30,9 @@
  *                                                                           *
  * A simple program to wipe log files of all entries matching specific       *
  * criteria, e.g. username or host. This program constructs a new log        *
- * file which completely omits the matching log entries. It should           *
- * go without saying, but since this program modifies log files, it must     *
- * be run as root.                                                           *
+ * file which completely omits the matching log entries. The new, modified   *
+ * log file is then copied over the original log file. It should go without  *
+ * saying, but since this program modifies log files, it must be run as root *                                                           *
  *****************************************************************************/
 #include <stdio.h>
 #include <errno.h>
@@ -122,7 +122,7 @@ static void usage(void){
     fprintf(stderr, "   -V                Print program version\n");
     fprintf(stderr, "   -w                Wipe the wtmp log file\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Report bugs to <northernhzae@gmail.com>.\n");
+    fprintf(stderr, "Report bugs to <spcnvdrr@protonmail.com>.\n");
 
     exit(EXIT_FAILURE);
 }
