@@ -48,7 +48,7 @@
 #include <time.h>
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.6.2";
+static char *version = "redact 0.6.3";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -308,11 +308,11 @@ static void wipe_utmp(const char *username, const char *logfile){
 
 		/* Note this if statement also returns true if ut_user is a
 		 * NUL string, meaning all entries with empty ut_user are removed */
-		if(strncmp(ut.ut_user, username, strlen(ut.ut_user)) == 0){
+		if(strcmp(ut.ut_user, username) == 0 || ut.ut_user[0] == '\0'){
 			found++;		/* number of matching entries */
 			continue;
 		} else if(optflags.host != NULL &&
-				strncmp(ut.ut_host, optflags.host, strlen(ut.ut_host)) == 0){
+				strcmp(ut.ut_host, optflags.host) == 0){
 			found++;
 			continue;
 		} else {
@@ -392,7 +392,7 @@ static void wipe_last(const char *username, const char *logfile){
 	if(optflags.host != NULL){
 		while(fread(&llbuf, llsize, 1, fin) == 1){
 			num++;
-			if(strncmp(llbuf.ll_host, optflags.host, strlen(optflags.host)) == 0){
+			if(strcmp(llbuf.ll_host, optflags.host) == 0){
 				found++;
 				/* Rewind the cursor, then wipe the entry */
 				fseek(fin, (long)-llsize, SEEK_CUR);

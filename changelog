@@ -1,3 +1,11 @@
+redact (0.6.3); urgency=medium;
+  * Fixed a bug where certain entries may be incorrectly removed
+    when wiping certain log files. This was caused by incorrect use
+    of the strncmp() function which could cause the username 'Fred'
+    to be declared equal to 'Fredrick'. 
+  
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Sun, 18 Mar 2018 07:09:23 -0500
+
 redact (0.6.2); urgency=low;
   * Minor code improvements and clean up.
   * Improved the project's documentation.
