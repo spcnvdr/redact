@@ -6,13 +6,13 @@ wipers currently available in that it avoids common pitfalls when
 destroying log entries. Some wipe programs simply overwrite the matching
 log entries with zeros. However, there are programs that check the integrity
 of the system's log files by searching for these NUL entries and alert
-the administrator when found. NUL log entries are avoided by creating a new 
-log file and entirely omitting specific entries which leaves no trace that 
-the log files have been tampered with. The same permissions and user/group 
-owners are applied to the new log file to avoid incorrect permissions or 
+the administrator when found. NUL log entries are avoided by creating a new
+log file and entirely omitting specific entries which leaves no trace that
+the log files have been tampered with. The same permissions and user/group
+owners are applied to the new log file to avoid incorrect permissions or
 owners. Finally, the old log file is replaced with the newly sanitized one.
 Below is a list of the common Linux log files that this program currently
-supports. 
+supports.
 
 **Common log file location - Description**
 
@@ -50,11 +50,11 @@ Get a copy of the source code and change into the redact directory.
     cd redact
 
 Then set the location of the relevant log files by editing the defines
-at the top of the redact.c file (WTMPFILE, UTMPFILE, etc.) which is 
-located in the src directory. If a defined log file is missing, either 
-point it at a blank regular text file you created somewhere or leave it 
-as the default and ignore the error messages about failure to open the 
-file. The default definitions should work for most Linux distributions, 
+at the top of the redact.c file (WTMPFILE, UTMPFILE, etc.) which is
+located in the src directory. If a defined log file is missing, either
+point it at a blank regular text file you created somewhere or leave it
+as the default and ignore the error messages about failure to open the
+file. The default definitions should work for most Linux distributions,
 but some may need to be changed. Use your favorite text editor to do so.
 
     vim ./src/redact.c
@@ -72,7 +72,7 @@ pertaining to the user named john
 
     ./redact -w john
 
-When finished, run the following command to delete the compiled program 
+When finished, run the following command to delete the compiled program
 and any intermediary object files
 
     make remove
@@ -86,13 +86,14 @@ This is intentional.
 
 **To Do**
 
-- [ ] Add an option to allow logs to be wiped by tty 
+- [ ] Add a backup option to back up the original log files 
+- [ ] Add an option to allow logs to be wiped by tty
 - [ ] Support UNIX operating systems (BSD, ...) in addition to Linux
 
 
 **Contributing**
 
-Pull requests, new feature suggestions, and bug reports/issues are 
+Pull requests, new feature suggestions, and bug reports/issues are
 welcome.
 
 
@@ -108,4 +109,3 @@ This project is licensed under the 3-Clause BSD License also known as the
 *"New BSD License"* or the *"Modified BSD License"*. A copy of the license
 can be found in the LICENSE file. A copy can also be found at the
 [Open Source Institute](https://opensource.org/licenses/BSD-3-Clause)
-

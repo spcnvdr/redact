@@ -32,7 +32,7 @@
  * criteria, e.g. username or host. This program constructs a new log        *
  * file which completely omits the matching log entries. The new, modified   *
  * log file is then copied over the original log file. It should go without  *
- * saying, but since this program modifies log files, it must be run as root *                                                           *
+ * saying, but since this program modifies log files, it must be run as root *
  *****************************************************************************/
 #include <stdio.h>
 #include <errno.h>
@@ -46,9 +46,10 @@
 #include <utmp.h>
 #include <sys/acct.h>
 #include <time.h>
+#include "proc_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.6.3";
+static char *version = "redact 0.7.0";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -178,6 +179,7 @@ static int move_file(const char *src, const char *dst){
 	return(0);
 }
 
+
 /** Get the the directory component of a pathname
  * @param pathname The path to get the directory of
  * @returns A pointer to the modified pathname, returns '.' if
@@ -200,6 +202,7 @@ static char *get_dir(char *pathname){
 
     return(pathname);
 }
+
 
 /** Look up the user ID of username
  * @param username The user to find the UID of
@@ -231,7 +234,7 @@ static int get_userid(const char *username, uid_t *id){
 	return(0);
 }
 
-/* Generate a temporary filename in the same directory as logfile
+/** Generate a temporary filename in the same directory as logfile
  * @param logfile A path to a file in the target directory
  * @returns An absolute path for a temporary file or NULL on error
  * @note It is the caller's responsibility to free the temporary path
@@ -280,6 +283,8 @@ static void wipe_utmp(const char *username, const char *logfile){
 	struct utmp ut;
 	size_t utsize = sizeof(struct utmp);
 	char *tmpfile;
+	struct proc_list *head = NULL;
+	struct proc_list *tmpnode = NULL;
 
 	if((fin = fopen(logfile, "r")) == NULL){
 		fprintf(stderr, "error opening %s log file: %s\n", logfile,
@@ -306,10 +311,18 @@ static void wipe_utmp(const char *username, const char *logfile){
 	while(fread(&ut, utsize, 1, fin) == 1){
 		num++;				/* total number of entries found */
 
-		/* Note this if statement also returns true if ut_user is a
-		 * NUL string, meaning all entries with empty ut_user are removed */
-		if(strcmp(ut.ut_user, username) == 0 || ut.ut_user[0] == '\0'){
-			found++;		/* number of matching entries */
+		/* Found entry containing username */
+		if(strcmp(ut.ut_user, username) == 0){
+			/* Add the pid to the linked list and increment number of found */
+			create_node(&head, ut.ut_pid);
+			found++;
+			continue;
+		} else if(ut.ut_type == DEAD_PROCESS &&
+				((tmpnode = find_process(head, ut.ut_pid)) != NULL)){
+			/* We found one of our user's logout entries, delete the entry from
+			 * the list and the log file */
+			delete_node(&head, ut.ut_pid);
+			found++;
 			continue;
 		} else if(optflags.host != NULL &&
 				strcmp(ut.ut_host, optflags.host) == 0){
@@ -338,8 +351,10 @@ static void wipe_utmp(const char *username, const char *logfile){
 		exit(EXIT_FAILURE);
 	}
 
+	/* Close the files and free the linked list */
 	fclose(fin);
 	fclose(fout);
+	free_list(&head);
 
 	/* Set the tmp file's uid, gid, and permissions to the
 	 * same as the original log file's */
