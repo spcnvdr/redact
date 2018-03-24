@@ -1,3 +1,9 @@
+redact (0.8.1); urgency=low;
+  * Fixed a minor bug in which some nodes were not correctly removed from
+    the linked list causing the size of the list to grow larger than needed.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Sat, 24 Mar 2018 15:10:44 -0500
+
 redact (0.8.0); urgency=medium;
   * Completely re-wrote the loop in the wipe_utmp() function to handle
     wiping all entries created by the given user. The loop now tracks

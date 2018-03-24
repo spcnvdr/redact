@@ -49,7 +49,7 @@
 #include "proc_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.8.0";
+static char *version = "redact 0.8.1";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -345,6 +345,8 @@ static void wipe_utmp(const char *username, const char *logfile){
 
 			} else if(strcmp(ut.ut_user, username) == 0){
 				/* Wipe entry, some other kind of entry */
+				if((tmpnode = find_tty(head, ut.ut_line)) != NULL)
+					delete_tty(&head, ut.ut_line);
 				found++;
 				continue;
 			}
