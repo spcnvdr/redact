@@ -36,16 +36,18 @@
 #include "proc_list.h"
 #include <stdio.h>
 #include <errno.h>
+#include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
 
 
 /** Create, initialize, and link in a new node with the given properties
  * @param head a double pointer to the first node of the linked list
- * @param proc_id the process ID to create the new node with
+ * @param pid the process ID to create the new node with, from ut_pid
+ * @param tty the device name/tty to create node with, from ut_line
  *
  */
-void create_node(struct proc_list **head, pid_t proc_id){
+void create_node(struct proc_list **head, pid_t pid, char *tty){
 	/* Allocate memory for the new node */
 	struct proc_list *new = malloc(sizeof(struct proc_list));
 	if(new == NULL){
@@ -53,7 +55,16 @@ void create_node(struct proc_list **head, pid_t proc_id){
 		exit(EXIT_FAILURE);
 	}
 
-	new->proc_id = proc_id;
+	/* Allocate space to store the ut_line member of utmp structure */
+	new->proc_tty = malloc(MAXTTY);
+	if(new->proc_tty == NULL){
+		perror("malloc() error");
+		free(new);
+		exit(EXIT_FAILURE);
+	}
+
+	new->proc_id = pid;
+	strncpy(new->proc_tty, tty, MAXTTY);
 
 	/* Add the new node to the head of the list */
 	new->proc_next = (*head);
@@ -63,13 +74,33 @@ void create_node(struct proc_list **head, pid_t proc_id){
 
 /** Find a node member with the given process ID
  * @param head a pointer to the start of the list
- * @param proc_id the process ID number of the node to find
+ * @param pid the process ID number of the node to find
  * @returns a pointer to the node or NULL if not found
  *
  */
-struct proc_list *find_process(struct proc_list *head, pid_t proc_id){
+struct proc_list *find_pid(struct proc_list *head, pid_t pid){
 	while(head != NULL){
-		if(head->proc_id == proc_id){
+		if(head->proc_id == pid){
+			/* We found the node */
+			return(head);
+		}
+		/* Continue looking... */
+		head = head->proc_next;
+	}
+	/* PID not found in list */
+	return(NULL);
+}
+
+
+/** Find a node member with the given TTY value
+ * @param head a pointer to the start of the list
+ * @param tty the device name/tty of the node to find
+ * @returns a pointer to the node or NULL if not found
+ *
+ */
+struct proc_list *find_tty(struct proc_list *head, char *tty){
+	while(head != NULL){
+		if(!(strcmp(head->proc_tty, tty))){
 			/* We found the node */
 			return(head);
 		}
@@ -83,22 +114,48 @@ struct proc_list *find_process(struct proc_list *head, pid_t proc_id){
 
 /** Unlink and free a node from the list specified by process id.
  * @param head a double pointer to the first node of the linked list
- * @param proc_id the process ID of the node to remove
+ * @param pid the process ID of the node to remove
  *
  */
-void delete_node(struct proc_list **head, pid_t proc_id){
+void delete_pid(struct proc_list **head, pid_t pid){
 	struct proc_list *tmp = NULL;
 
 	while(*head != NULL){
-		if((*head)->proc_id == proc_id){
+		if((*head)->proc_id == pid){
 			/* We found the node to delete */
 			tmp = (*head);
 			/* Remove the node from the list and free it */
 			(*head) = (*head)->proc_next;
+			free(tmp->proc_tty);
 			free(tmp);
 			return;
 		} else {
 			/* Keep looking */
+			head = &((*head)->proc_next);
+		}
+	}
+}
+
+
+/** Unlink and free a node from the list specified by the tty.
+ * @param head a double pointer to the first node of the linked list
+ * @param tty the device name of the node to remove
+ *
+ */
+void delete_tty(struct proc_list **head, char *tty){
+	struct proc_list *tmp = NULL;
+
+	while(*head != NULL){
+		if(!strcmp((*head)->proc_tty, tty)){
+			/* Found the node */
+			tmp = (*head);
+			/* Remove the node and free it */
+			(*head) = (*head)->proc_next;
+			free(tmp->proc_tty);
+			free(tmp);
+			return;
+		} else {
+			/* Keep looking... */
 			head = &((*head)->proc_next);
 		}
 	}
@@ -114,6 +171,7 @@ void free_list(struct proc_list **head){
 	struct proc_list *tmp = *head;
 	while(*head != NULL){
 		*head = (*head)->proc_next;
+		free(tmp->proc_tty);
 		free(tmp);
 		tmp = *head;
 	}

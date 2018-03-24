@@ -1,3 +1,22 @@
+redact (0.8.0); urgency=medium;
+  * Completely re-wrote the loop in the wipe_utmp() function to handle
+    wiping all entries created by the given user. The loop now tracks
+    the user's process creation and destruction in order to wipe all
+    possible entries created by the user, even if the user's name is not
+    in the log entry.
+  * Fixed a bunch of little code style issues with the linked list
+    implementation. Also added a new variable to the nodes of the linked
+    list to track the terminals used by the target user.
+  * Added new functions to the linked list implementation to handle
+    searching and deleting nodes based on TTY.
+  * Fixed the way the wipe_utmp() function behaves if the run with the
+    -i option to wipe entries by host. The function now wipes only
+    entries from that host and ignores all other entries. This is how
+    it should have behaved all along instead of wiping by host and user name.
+  * Added all new bugs!
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Sat, 24 Mar 2018 10:02:33 -0500
+
 redact (0.7.0); urgency=low;
   * Added code to the program so we properly remove log out entries created
     by the given user. Note that when a user logs out, a DEAD_PROCESS

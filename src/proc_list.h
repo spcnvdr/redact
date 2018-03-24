@@ -51,35 +51,57 @@
 #ifndef PROC_LIST_H_
 #define PROC_LIST_H_
 
+/* Max length of string to store tty */
+#define MAXTTY	50
+
 struct proc_list{
-	pid_t proc_id;					/* The process id of this entry */
+	pid_t proc_id;			/* The process id of this entry */
+	char *proc_tty;			/* A string to hold ut_line */
 	struct proc_list *proc_next;	/* Pointer to next member in linked list */
 };
 
 
 /** Create, initialize, and link in a new node with the given properties
  * @param head a double pointer to the first node of the linked list
- * @param proc_id the process ID to create the new node with
+ * @param pid the process ID to create the new node with, from ut_pid
+ * @param tty the device name/tty to create node with, from ut_line
  *
  */
-void create_node(struct proc_list **head, pid_t proc_id);
+void create_node(struct proc_list **head, pid_t pid, char *tty);
 
 
 /** Find a node member with the given process ID
  * @param head a pointer to the start of the list
- * @param proc_id the process ID number of the node to find
+ * @param pid the process ID number of the node to find
  * @returns a pointer to the node or NULL if not found
  *
  */
-struct proc_list *find_process(struct proc_list *head, pid_t proc_id);
+struct proc_list *find_pid(struct proc_list *head, pid_t pid);
+
+
+/** Find a node member with the given TTY value
+ * @param head a pointer to the start of the list
+ * @param tty the device name/tty of the node to find
+ * @returns a pointer to the node or NULL if not found
+ *
+ */
+struct proc_list *find_tty(struct proc_list *head, char *tty);
 
 
 /** Unlink and free a node from the list specified by process id.
  * @param head a double pointer to the first node of the linked list
- * @param proc_id the process ID of the node to remove
+ * @param pid the process ID of the node to remove
  *
  */
-void delete_node(struct proc_list **head, pid_t proc_id);
+void delete_pid(struct proc_list **head, pid_t pid);
+
+
+/** Unlink and free a node from the list specified by the tty.
+ * @param head a double pointer to the first node of the linked list
+ * @param tty the device name of the node to remove
+ *
+ */
+void delete_tty(struct proc_list **head, char *tty);
 
 
 /** Free the entire list. Note that once a list is

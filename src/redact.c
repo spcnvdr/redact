@@ -49,7 +49,7 @@
 #include "proc_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.7.0";
+static char *version = "redact 0.8.0";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -76,12 +76,12 @@ struct args{
 	int wipeAll;			/* Wipe all the logs! */
 	int acctlog;			/* Wipe process accounting logs */
 	const char *host;		/* Wipe log entries containing this host*/
-	const char *username;	/* Wipe log entries containing this user name */
+	const char *username;		/* Wipe log entries containing this user name */
 	int verbose;			/* Enable verbose output */
 	int utmplog;			/* Wipe utmp */
 	int wtmplog;			/* Wipe wtmp */
 	int btmplog;			/* Wipe btmp */
-	int lastlog;            /* Wipe lastlog */
+	int lastlog;            	/* Wipe lastlog */
 	int faillog;			/* Wipe faillog */
 	int authlog;			/* Wipe auth.log */
 };
@@ -286,6 +286,9 @@ static void wipe_utmp(const char *username, const char *logfile){
 	struct proc_list *head = NULL;
 	struct proc_list *tmpnode = NULL;
 
+	/* Flag to wipe next LOGIN_PROCESS entry */
+	int killLogin = 0;
+
 	if((fin = fopen(logfile, "r")) == NULL){
 		fprintf(stderr, "error opening %s log file: %s\n", logfile,
 				strerror(errno));
@@ -305,38 +308,57 @@ static void wipe_utmp(const char *username, const char *logfile){
 		exit(EXIT_FAILURE);
 	}
 
-	/* Read utmp records until we hit EOF, if the record contains
-	 * the given username, skip it, else copy it to the temporary
-	 * file. */
+	/* Read utmp records until we hit EOF, wiping entries
+	 * that contain the username or host */
 	while(fread(&ut, utsize, 1, fin) == 1){
 		num++;				/* total number of entries found */
 
-		/* Found entry containing username */
-		if(strcmp(ut.ut_user, username) == 0){
-			/* Add the pid to the linked list and increment number of found */
-			create_node(&head, ut.ut_pid);
-			found++;
-			continue;
-		} else if(ut.ut_type == DEAD_PROCESS &&
-				((tmpnode = find_process(head, ut.ut_pid)) != NULL)){
-			/* We found one of our user's logout entries, delete the entry from
-			 * the list and the log file */
-			delete_node(&head, ut.ut_pid);
-			found++;
-			continue;
-		} else if(optflags.host != NULL &&
-				strcmp(ut.ut_host, optflags.host) == 0){
+		/* Wipe entries by host, else by username */
+		if(optflags.host != NULL && strcmp(ut.ut_host, optflags.host) == 0){
 			found++;
 			continue;
 		} else {
-			if(fwrite(&ut, utsize, 1, fout) != 1){
-				perror("fwrite() error");
-				fclose(fin);
-				fclose(fout);
-				unlink(tmpfile);		/* Delete our temporary file */
-				free(tmpfile);
-				exit(EXIT_FAILURE);
+			if(ut.ut_type == USER_PROCESS && strcmp(ut.ut_user, username) == 0){
+				/* Add to linked list and remove entry */
+				create_node(&head, ut.ut_pid, ut.ut_line);
+				found++;
+				continue;
+
+			} else if(ut.ut_type == DEAD_PROCESS && ut.ut_user[0] == '\0'){
+				if((tmpnode = find_tty(head, ut.ut_line)) != NULL){
+					found++;
+					/* Remove node from linked list */
+					delete_tty(&head, ut.ut_line);
+					/* Set flag so if next entry is LOGIN_PROCESS, wipe it */
+					killLogin = 1;
+					continue;
+				}
+
+			} else if(ut.ut_type == LOGIN_PROCESS && killLogin){
+				killLogin = 0;
+				found++;
+				continue;
+
+			} else if(ut.ut_type == BOOT_TIME){
+				/* Empty the linked list */
+				free_list(&head);
+
+			} else if(strcmp(ut.ut_user, username) == 0){
+				/* Wipe entry, some other kind of entry */
+				found++;
+				continue;
 			}
+		}
+
+		/* We did not wipe the current entry, write to temp file */
+		if(fwrite(&ut, utsize, 1, fout) != 1){
+			perror("fwrite() error");
+			fclose(fin);
+			fclose(fout);
+			unlink(tmpfile);		/* Delete our temporary file */
+			free(tmpfile);
+			exit(EXIT_FAILURE);
+
 		}
 	}
 
