@@ -1,3 +1,14 @@
+redact (0.8.2); urgency=low;
+  * Modified the wipe_utmp() function to improve code quality.
+  * Added a new feature that when wiping either all logs (-a option)
+    or the process accounting logs (-p option) the redact program name
+    will NOT show up in the process accounting logs. This is done in
+    the bail() function which is just a wrapper for the execl() function.
+    This function replaces the redact program in memory with the echo
+    program thus echo shows up in the log instead of redact.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Sun, 25 Mar 2018 11:48:30 -0500
+
 redact (0.8.1); urgency=low;
   * Fixed a minor bug in which some nodes were not correctly removed from
     the linked list causing the size of the list to grow larger than needed.

@@ -49,7 +49,7 @@
 #include "proc_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.8.1";
+static char *version = "redact 0.8.2";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -270,6 +270,21 @@ static char *gen_tmpath(const char *logfile){
 }
 
 
+/** Exit the program without leaving the original program's
+ * name in the process accounting logs. This is done by
+ * executing another program with execl which replaces the
+ * current process in memory with a different program
+ * (in this case the echo program).
+ * @param message a string to be printed out by echo
+ * @returns On success this function does not return,
+ * else -1 on error
+ */
+static int bail(const char *message){
+	execl("/bin/echo", "echo", message, NULL);
+	perror("execl() error");
+	return(-1);
+}
+
 /** Remove all entries containing username from a log file
  * that uses utmp data structures, e.g. wtmp, utmp, etc.
  * @param username The username to search entries for
@@ -318,9 +333,15 @@ static void wipe_utmp(const char *username, const char *logfile){
 			found++;
 			continue;
 		} else {
-			if(ut.ut_type == USER_PROCESS && strcmp(ut.ut_user, username) == 0){
-				/* Add to linked list and remove entry */
-				create_node(&head, ut.ut_pid, ut.ut_line);
+			if(strcmp(ut.ut_user, username) == 0){
+				if(ut.ut_type == USER_PROCESS){
+					/* Add to linked list and remove entry */
+					create_node(&head, ut.ut_pid, ut.ut_line);
+				} else if(ut.ut_type == DEAD_PROCESS &&
+						(tmpnode = find_tty(head,ut.ut_line)) != NULL){
+					delete_tty(&head, ut.ut_line);
+				}
+
 				found++;
 				continue;
 
@@ -343,12 +364,6 @@ static void wipe_utmp(const char *username, const char *logfile){
 				/* Empty the linked list */
 				free_list(&head);
 
-			} else if(strcmp(ut.ut_user, username) == 0){
-				/* Wipe entry, some other kind of entry */
-				if((tmpnode = find_tty(head, ut.ut_line)) != NULL)
-					delete_tty(&head, ut.ut_line);
-				found++;
-				continue;
 			}
 		}
 
@@ -807,6 +822,8 @@ int main(int argc, char *argv[]){
 		wipe_fail(optflags.username, FAILLOGFILE);
 		wipe_acct(optflags.username, ACCTFILE);
 		wipe_auth(optflags.username, AUTHFILE);
+		if(bail("done"))
+			return(-1);
 		return(0);
 	}
 
@@ -828,11 +845,12 @@ int main(int argc, char *argv[]){
 	if(optflags.faillog){
 		wipe_fail(optflags.username, FAILLOGFILE);
 	}
-	if(optflags.acctlog){
-		wipe_acct(optflags.username, ACCTFILE);
-	}
 	if(optflags.authlog){
 		wipe_auth(optflags.username, AUTHFILE);
+	}
+	if(optflags.acctlog){
+		wipe_acct(optflags.username, ACCTFILE);
+		bail("done");
 	}
 
 	return(0);
