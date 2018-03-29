@@ -1,3 +1,8 @@
+redact (0.8.3); urgency=low;
+  * Minor code change to move the call to the bail function into the
+    function that wipes process accounting logs.
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Wed, 28 Mar 2018 21:51:47 -0500
+
 redact (0.8.2); urgency=low;
   * Modified the wipe_utmp() function to improve code quality.
   * Added a new feature that when wiping either all logs (-a option)
@@ -169,7 +174,7 @@ redact (0.1.0); urgency=medium:
     removed utmp.h and related data structures and replaced them with
     utmpx.h and struct utmpx data structures.
 
-  -- Bryan Hawkins <northernhze@gmail.com> Mon, 12 Feb 2018 21:07:01 -0600
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Mon, 12 Feb 2018 21:07:01 -0600
 
 redact (0.0.2); urgency=low:
   * Added a function to remove log entries from the lastlog log file that

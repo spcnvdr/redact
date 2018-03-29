@@ -49,7 +49,7 @@
 #include "proc_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.8.2";
+static char *version = "redact 0.8.3";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -509,7 +509,7 @@ static void wipe_fail(const char *username, const char *logfile){
 	}
 
 	/* Note that faillog does not record what host the failed login
-	 * occurred from so it is not possible to wipe all entries created
+	 * occurred from so it is not possible to wipe entries created
 	 * from a certain host like the lastlog file */
 
 	if(get_userid(username, &userid) < 0)
@@ -622,6 +622,8 @@ static void wipe_acct(const char *username, const char *logfile){
 	if(optflags.verbose)
 		printf("Redacted %zu out of %zu records in %s\n", found, num, logfile);
 
+	/* Prevent redact from showing up in process logs */
+	bail("done");
 	return;
 }
 
@@ -822,8 +824,6 @@ int main(int argc, char *argv[]){
 		wipe_fail(optflags.username, FAILLOGFILE);
 		wipe_acct(optflags.username, ACCTFILE);
 		wipe_auth(optflags.username, AUTHFILE);
-		if(bail("done"))
-			return(-1);
 		return(0);
 	}
 
@@ -850,7 +850,6 @@ int main(int argc, char *argv[]){
 	}
 	if(optflags.acctlog){
 		wipe_acct(optflags.username, ACCTFILE);
-		bail("done");
 	}
 
 	return(0);
