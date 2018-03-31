@@ -1,3 +1,10 @@
+redact (0.8.4); urgency=medium;
+  * Fixed a bug that when using the -a option to wipe all log files,
+    the auth.log file was not wiped.
+  * Removed old code that is no longer used.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Sat, 31 Mar 2018 13:25:23 -0500
+
 redact (0.8.3); urgency=low;
   * Minor code change to move the call to the bail function into the
     function that wipes process accounting logs.

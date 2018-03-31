@@ -49,7 +49,7 @@
 #include "proc_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.8.3";
+static char *version = "redact 0.8.4";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -336,7 +336,7 @@ static void wipe_utmp(const char *username, const char *logfile){
 			if(strcmp(ut.ut_user, username) == 0){
 				if(ut.ut_type == USER_PROCESS){
 					/* Add to linked list and remove entry */
-					create_node(&head, ut.ut_pid, ut.ut_line);
+					create_node(&head, ut.ut_line);
 				} else if(ut.ut_type == DEAD_PROCESS &&
 						(tmpnode = find_tty(head,ut.ut_line)) != NULL){
 					delete_tty(&head, ut.ut_line);
@@ -822,8 +822,8 @@ int main(int argc, char *argv[]){
 		wipe_utmp(optflags.username, BTMPFILE);
 		wipe_last(optflags.username, LASTLOGFILE);
 		wipe_fail(optflags.username, FAILLOGFILE);
-		wipe_acct(optflags.username, ACCTFILE);
 		wipe_auth(optflags.username, AUTHFILE);
+		wipe_acct(optflags.username, ACCTFILE);
 		return(0);
 	}
 
