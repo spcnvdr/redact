@@ -49,7 +49,7 @@
 #include "proc_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.8.4";
+static char *version = "redact 0.8.5";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -64,28 +64,8 @@ static char *version = "redact 0.8.4";
 /* The longest line to read from a file */
 #define MAXLINE			4096
 
-/* Different operating systems use different versions */
-#if defined(__FreeBSD__)
-#define acct acctv2
-#elif defined(__linux__)
-#define acct acct_v3
-#endif
-
-/* Global structure to keep track of options */
-struct args{
-	int wipeAll;			/* Wipe all the logs! */
-	int acctlog;			/* Wipe process accounting logs */
-	const char *host;		/* Wipe log entries containing this host*/
-	const char *username;		/* Wipe log entries containing this user name */
-	int verbose;			/* Enable verbose output */
-	int utmplog;			/* Wipe utmp */
-	int wtmplog;			/* Wipe wtmp */
-	int btmplog;			/* Wipe btmp */
-	int lastlog;            	/* Wipe lastlog */
-	int faillog;			/* Wipe faillog */
-	int authlog;			/* Wipe auth.log */
-};
-static struct args optflags = {0};
+/* Global option for verbose mode */
+int verboseMode = 0;
 
 /*
  * The login failure file is maintained by login(1) and faillog(8)
@@ -113,8 +93,8 @@ static void usage(void){
     fprintf(stderr, "   -a                Wipe all available log files\n");
     fprintf(stderr, "   -b                Wipe the btmp log file\n");
     fprintf(stderr, "   -f                Wipe the faillog log file\n");
-    fprintf(stderr, "   -i                Remove entries containing this hostname\n");
     fprintf(stderr, "   -h, -?            Display this help and exit\n");
+    fprintf(stderr, "   -i                Remove entries containing this hostname\n");
     fprintf(stderr, "   -l                Wipe the lastlog log file\n");
     fprintf(stderr, "   -p                Wipe process accounting logs\n");
     fprintf(stderr, "   -t                Wipe auth.log log file\n");
@@ -285,13 +265,15 @@ static int bail(const char *message){
 	return(-1);
 }
 
+
 /** Remove all entries containing username from a log file
  * that uses utmp data structures, e.g. wtmp, utmp, etc.
  * @param username The username to search entries for
+ * @param host Wipe all entries containing host instead of username
  * @param logfile The path of the utmp/wtmp/btmp file to wipe
  *
  */
-static void wipe_utmp(const char *username, const char *logfile){
+static void wipe_utmp(const char *username, const char *host, const char *logfile){
 	FILE *fin, *fout;
 	size_t num = 0;
 	size_t found = 0;
@@ -329,7 +311,7 @@ static void wipe_utmp(const char *username, const char *logfile){
 		num++;				/* total number of entries found */
 
 		/* Wipe entries by host, else by username */
-		if(optflags.host != NULL && strcmp(ut.ut_host, optflags.host) == 0){
+		if(host != NULL && strcmp(ut.ut_host, host) == 0){
 			found++;
 			continue;
 		} else {
@@ -413,7 +395,7 @@ static void wipe_utmp(const char *username, const char *logfile){
 
 	free(tmpfile);
 
-	if(optflags.verbose)
+	if(verboseMode)
 		printf("Redacted %zu out of %zu records in %s\n", found, num, logfile);
 
 	return;
@@ -421,10 +403,11 @@ static void wipe_utmp(const char *username, const char *logfile){
 
 /** Wipe the lastlog file of entries containing host or username
  * @param username The username to wipe
+ * @param host Wipe all entries containing host instead of username
  * @param logfile The path of the lastlog log file to wipe
  *
  */
-static void wipe_last(const char *username, const char *logfile){
+static void wipe_last(const char *username, const char *host, const char *logfile){
 	FILE *fin;
 	uid_t userid;
 	size_t num = 0;
@@ -443,10 +426,10 @@ static void wipe_last(const char *username, const char *logfile){
 		return;
 	}
 
-	if(optflags.host != NULL){
+	if(host != NULL){
 		while(fread(&llbuf, llsize, 1, fin) == 1){
 			num++;
-			if(strcmp(llbuf.ll_host, optflags.host) == 0){
+			if(strcmp(llbuf.ll_host, host) == 0){
 				found++;
 				/* Rewind the cursor, then wipe the entry */
 				fseek(fin, (long)-llsize, SEEK_CUR);
@@ -461,7 +444,7 @@ static void wipe_last(const char *username, const char *logfile){
 			exit(EXIT_FAILURE);
 		}
 
-		if(optflags.verbose)
+		if(verboseMode)
 			printf("Redacted %zu out of %zu records in %s\n",
 				found, --num, LASTLOGFILE);
 
@@ -483,7 +466,7 @@ static void wipe_last(const char *username, const char *logfile){
 			exit(EXIT_FAILURE);
 		}
 
-		if(optflags.verbose)
+		if(verboseMode)
 			printf("Redacted 1 record in %s\n", LASTLOGFILE);
 	}
 
@@ -532,7 +515,7 @@ static void wipe_fail(const char *username, const char *logfile){
 
 	fclose(fin);
 
-	if(optflags.verbose)
+	if(verboseMode)
 		printf("Redacted 1 record in %s\n", FAILLOGFILE);
 
 	return;
@@ -549,8 +532,8 @@ static void wipe_acct(const char *username, const char *logfile){
 	size_t found = 0;
 	FILE *fin, *fout;
 	char *tmpfile;
-	struct acct acbuf;
-	size_t acsize = sizeof(struct acct);
+	struct acct_v3 acbuf;
+	size_t acsize = sizeof(struct acct_v3);
 
 	if(get_userid(username, &userid) < 0){
 		exit(EXIT_FAILURE);
@@ -619,7 +602,7 @@ static void wipe_acct(const char *username, const char *logfile){
 
 	free(tmpfile);
 
-	if(optflags.verbose)
+	if(verboseMode)
 		printf("Redacted %zu out of %zu records in %s\n", found, num, logfile);
 
 	/* Prevent redact from showing up in process logs */
@@ -631,7 +614,7 @@ static void wipe_acct(const char *username, const char *logfile){
 /** Wipe the auth.log file that records user authentication attempts
  * @param username The username to wipe from the file
  * @param logfile The path of the auth.log file to wipe
- *
+ * TODO: Make a wipe by host option for auth.log?
  */
 static void wipe_auth(const char *username, const char *logfile){
 	FILE *fin, *fout;
@@ -710,7 +693,7 @@ static void wipe_auth(const char *username, const char *logfile){
 
 	free(tmpfile);
 
-	if(optflags.verbose)
+	if(verboseMode)
 		printf("Redacted %zu out of %zu records in %s\n", found, num, logfile);
 
 	return;
@@ -725,7 +708,9 @@ static void wipe_auth(const char *username, const char *logfile){
  *
  */
 int main(int argc, char *argv[]){
-	int opt;
+	int wipeAll = 0, acctlog = 0, utmplog = 0, wtmplog = 0, btmplog = 0;
+	int lastlog = 0, faillog = 0, authlog = 0, opt;
+	char *host = NULL, *username = NULL;
 	uid_t eid;
 
 	/* Process the command line options */
@@ -733,37 +718,37 @@ int main(int argc, char *argv[]){
 		switch(opt){
 		case 'a':
 			/* Modify all available logs */
-			optflags.wipeAll = 1;
+			wipeAll = 1;
 			break;
 
 		case 'b':
 			/* Wipe btmp log file */
-			optflags.btmplog = 1;
+			btmplog = 1;
 			break;
 
 		case 'f':
 			/* Wipe faillog */
-			optflags.faillog = 1;
+			faillog = 1;
 			break;
 
 		case 'i':
 			/* Remove activity from this host */
-			optflags.host = optarg;
+			host = optarg;
 			break;
 
 		case 'l':
 			/* Wipe lastlog file */
-			optflags.lastlog = 1;
+			lastlog = 1;
 			break;
 
 		case 'p':
 			/* Wipe process accounting logs */
-			optflags.acctlog = 1;
+			acctlog = 1;
 			break;
 
 		case 'v':
 			/* Enable verbose mode */
-			optflags.verbose = 1;
+			verboseMode = 1;
 			break;
 
 		case 'V':
@@ -774,17 +759,17 @@ int main(int argc, char *argv[]){
 
 		case 'u':
 			/* Modify utmp log file */
-			optflags.utmplog = 1;
+			utmplog = 1;
 			break;
 
 		case 't':
 			/* Wipe the auth.log log file */
-			optflags.authlog = 1;
+			authlog = 1;
 			break;
 
 		case 'w':
 			/* Modify wtmp log file*/
-			optflags.wtmplog = 1;
+			wtmplog = 1;
 			break;
 
 		case '?':
@@ -800,8 +785,8 @@ int main(int argc, char *argv[]){
 	}
 
 	/* Get the argument required by this program */
-	optflags.username = argv[optind];
-	if(optflags.username == NULL){
+	username = argv[optind];
+	if(username == NULL){
 		fprintf(stderr, "Error: Must provide a user name\n");
 		usage();
 	}
@@ -815,41 +800,29 @@ int main(int argc, char *argv[]){
 		return(1);
 	}
 
-	/* Wipe the logs */
-	if(optflags.wipeAll){
-		wipe_utmp(optflags.username, UTMPFILE);
-		wipe_utmp(optflags.username, WTMPFILE);
-		wipe_utmp(optflags.username, BTMPFILE);
-		wipe_last(optflags.username, LASTLOGFILE);
-		wipe_fail(optflags.username, FAILLOGFILE);
-		wipe_auth(optflags.username, AUTHFILE);
-		wipe_acct(optflags.username, ACCTFILE);
-		return(0);
-	}
-
 	/* Check each flag individually so that any combination of log files
 	 * can be specified on the command line */
-	if(optflags.utmplog){
-		wipe_utmp(optflags.username, UTMPFILE);
+	if(utmplog || wipeAll){
+		wipe_utmp(username, host, UTMPFILE);
 	}
 
-	if(optflags.wtmplog){
-		wipe_utmp(optflags.username, WTMPFILE);
+	if(wtmplog || wipeAll){
+		wipe_utmp(username, host, WTMPFILE);
 	}
-	if(optflags.btmplog){
-		wipe_utmp(optflags.username, BTMPFILE);
+	if(btmplog || wipeAll){
+		wipe_utmp(username, host, BTMPFILE);
 	}
-	if(optflags.lastlog){
-		wipe_last(optflags.username, LASTLOGFILE);
+	if(lastlog || wipeAll){
+		wipe_last(username, host, LASTLOGFILE);
 	}
-	if(optflags.faillog){
-		wipe_fail(optflags.username, FAILLOGFILE);
+	if(faillog || wipeAll){
+		wipe_fail(username, FAILLOGFILE);
 	}
-	if(optflags.authlog){
-		wipe_auth(optflags.username, AUTHFILE);
+	if(authlog || wipeAll){
+		wipe_auth(username, AUTHFILE);
 	}
-	if(optflags.acctlog){
-		wipe_acct(optflags.username, ACCTFILE);
+	if(acctlog || wipeAll){
+		wipe_acct(username, ACCTFILE);
 	}
 
 	return(0);

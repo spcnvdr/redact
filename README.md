@@ -1,4 +1,4 @@
-# Redact - A simple log wiping program
+# Redact - A Linux log wiping program
 
 Redact is a simple Linux program to remove a user's activity from
 common system log files. This program is different than other log
@@ -13,6 +13,13 @@ owners are applied to the new log file to avoid incorrect permissions or
 owners. Finally, the old log file is replaced with the newly sanitized one.
 Below is a list of the common Linux log files that this program currently
 supports.
+
+**This program is still undergoing development!**
+
+This program is currently released as a beta version and as such is
+currently undergoing active development. New features are still being added
+and functionality is constantly being improved. Also, check back frequently
+for new versions. 
 
 **Common log file location - Description**
 
@@ -86,9 +93,8 @@ This is intentional.
 
 **To Do**
 
-- [ ] Add a backup option to back up the original log files 
+- [ ] Add a backup option to back up the original log files
 - [ ] Add an option to allow logs to be wiped by tty
-- [ ] Support UNIX operating systems (BSD, ...) in addition to Linux
 
 
 **Contributing**

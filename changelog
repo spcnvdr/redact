@@ -1,3 +1,15 @@
+redact (0.8.5); urgency=low;
+  * Changed the variables that help parse the command line options from
+    global storage to local storage inside main().
+  * Removed some unneeded code that changed the version of the acct
+    structure depending on platform.
+  * Fixed the order of command line options in the help message.
+  * Removed redundant code.
+  * Updated the README.md file to reflect the current goals and remind
+    potential users that the program is still in beta.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Sun, 08 Apr 2018 12:16:54 -0500 
+
 redact (0.8.4); urgency=medium;
   * Fixed a bug that when using the -a option to wipe all log files,
     the auth.log file was not wiped.
