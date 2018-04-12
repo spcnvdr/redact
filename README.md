@@ -93,7 +93,7 @@ This is intentional.
 
 **To Do**
 
-- [ ] Add a backup option to back up the original log files
+- [x] Add a backup option to back up the original log files
 - [ ] Add an option to allow logs to be wiped by tty
 
 
