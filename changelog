@@ -1,3 +1,13 @@
+redact (0.8.6); urgency=low;
+  * Changed redact to not leave core files in the event of a failure.
+  * Added the -k option to back up the original log files before wiping
+    them. The files are backed up to the current working directory.
+  * Changed wipe_acct() to no longer print a message when exiting via the
+    bail() function.
+  * Removed an unneeded variable. 
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Thu, 12 Apr 2018 11:32:04 -0500
+
 redact (0.8.5); urgency=low;
   * Changed the variables that help parse the command line options from
     global storage to local storage inside main().
@@ -8,7 +18,7 @@ redact (0.8.5); urgency=low;
   * Updated the README.md file to reflect the current goals and remind
     potential users that the program is still in beta.
 
-  -- Bryan Hawkins <spcnvdrr@protonmail.com> Sun, 08 Apr 2018 12:16:54 -0500 
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Sun, 08 Apr 2018 12:16:54 -0500
 
 redact (0.8.4); urgency=medium;
   * Fixed a bug that when using the -a option to wipe all log files,

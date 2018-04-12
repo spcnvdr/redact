@@ -40,16 +40,19 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <lastlog.h>		/* lastlog may be defined here on some systems */
 #include <pwd.h>
 #include <utmp.h>
 #include <sys/acct.h>
 #include <time.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include "proc_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.8.5";
+static char *version = "redact 0.8.6";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -62,7 +65,9 @@ static char *version = "redact 0.8.5";
 #define AUTHFILE		"/var/log/auth.log"
 
 /* The longest line to read from a file */
-#define MAXLINE			4096
+#define MAXLINE	        4096
+#define FILE_MODE       (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
+#define BUFF_SIZE       (128*1024)
 
 /* Global option for verbose mode */
 int verboseMode = 0;
@@ -95,6 +100,7 @@ static void usage(void){
     fprintf(stderr, "   -f                Wipe the faillog log file\n");
     fprintf(stderr, "   -h, -?            Display this help and exit\n");
     fprintf(stderr, "   -i                Remove entries containing this hostname\n");
+    fprintf(stderr, "   -k                Keep/backup original log files\n");
     fprintf(stderr, "   -l                Wipe the lastlog log file\n");
     fprintf(stderr, "   -p                Wipe process accounting logs\n");
     fprintf(stderr, "   -t                Wipe auth.log log file\n");
@@ -136,6 +142,7 @@ static int clone_attrs(const char *src, const char *dst){
 
 	return(0);
 }
+
 
 /** Move file from src to dst
  * @param src The path of the file to move
@@ -214,6 +221,7 @@ static int get_userid(const char *username, uid_t *id){
 	return(0);
 }
 
+
 /** Generate a temporary filename in the same directory as logfile
  * @param logfile A path to a file in the target directory
  * @returns An absolute path for a temporary file or NULL on error
@@ -263,6 +271,106 @@ static int bail(const char *message){
 	execl("/bin/echo", "echo", message, NULL);
 	perror("execl() error");
 	return(-1);
+}
+
+
+/** Copy file infile to outfile
+ * @param infile The path to the file to make a copy of
+ * @param outfile Where to put the copy of infile
+ * @returns 0 on success, else -1 on error
+ *
+ */
+static int copy_file(const char *infile, const char *outfile){
+	int infd, outfd;
+	ssize_t n;
+	char *buf = NULL;
+
+	if((infd = open(infile, O_RDONLY)) < 0){
+		fprintf(stderr, "failed to open %s: %s\n", infile, strerror(errno));
+		return(-1);
+	}
+
+	posix_fadvise(infd, 0, 0, POSIX_FADV_SEQUENTIAL);
+
+	if((outfd = open(outfile, O_CREAT | O_WRONLY | O_TRUNC, FILE_MODE)) < 0){
+		close(infd);
+		fprintf(stderr, "failed to create/open %s: %s\n", outfile,
+				strerror(errno));
+		return(-1);
+	}
+
+	if((buf = malloc(BUFF_SIZE * sizeof(char))) == NULL){
+		perror("malloc error");
+		goto fail;
+	}
+
+	while((n = read(infd, buf, BUFF_SIZE)) > 0){
+		if(write(outfd, buf, (size_t)n) != n){
+			perror("write() error");
+			goto fail;
+		}
+	}
+	if(n < 0){
+		perror("read() error");
+		goto fail;
+	}
+
+	free(buf);
+	close(outfd);
+	close(infd);
+	return(0);
+
+fail:
+	free(buf);
+	close(outfd);
+	close(infd);
+	return(-1);
+}
+
+
+/** A dumb function to back up the selected log files
+ * Each parameter represents a possible log file to back up and
+ * if the parameter is set to 1 that log file is backed up to the
+ * current directory.
+ *
+ */
+static void backup_files(int wtmp, int utmp, int btmp, int lastlog,
+		int faillog, int acct, int auth){
+
+	if(wtmp){
+		if(copy_file(WTMPFILE, "./wtmp.back") < 0)
+			exit(EXIT_FAILURE);
+	}
+
+	if(utmp){
+		if(copy_file(UTMPFILE, "./utmp.back") < 0)
+			exit(EXIT_FAILURE);
+	}
+
+	if(btmp){
+		if(copy_file(BTMPFILE, "./btmp.back") < 0)
+			exit(EXIT_FAILURE);
+	}
+
+	if(lastlog){
+		if(copy_file(LASTLOGFILE, "./lastlog.back") < 0)
+			exit(EXIT_FAILURE);
+	}
+
+	if(faillog){
+		if(copy_file(FAILLOGFILE, "./faillog.back") < 0)
+			exit(EXIT_FAILURE);
+	}
+
+	if(acct){
+		if(copy_file(ACCTFILE, "./pacct.back") < 0)
+			exit(EXIT_FAILURE);
+	}
+
+	if(auth){
+		if(copy_file(AUTHFILE, "./auth.log.back") < 0)
+			exit(EXIT_FAILURE);
+	}
 }
 
 
@@ -606,7 +714,7 @@ static void wipe_acct(const char *username, const char *logfile){
 		printf("Redacted %zu out of %zu records in %s\n", found, num, logfile);
 
 	/* Prevent redact from showing up in process logs */
-	bail("done");
+	bail("");
 	return;
 }
 
@@ -708,17 +816,25 @@ static void wipe_auth(const char *username, const char *logfile){
  *
  */
 int main(int argc, char *argv[]){
-	int wipeAll = 0, acctlog = 0, utmplog = 0, wtmplog = 0, btmplog = 0;
-	int lastlog = 0, faillog = 0, authlog = 0, opt;
+	int acctlog = 0, utmplog = 0, wtmplog = 0, btmplog = 0;
+	int lastlog = 0, faillog = 0, authlog = 0, backup = 0, opt;
 	char *host = NULL, *username = NULL;
+	struct rlimit rl;
 	uid_t eid;
 
+	/* Make sure if we shit the bed we don't leave a core file behind */
+	rl.rlim_cur = 0;
+	rl.rlim_max = 0;
+	if(setrlimit(RLIMIT_CORE, &rl) < 0)
+		perror("rlimit() error");
+
 	/* Process the command line options */
-	while((opt = getopt(argc, argv, "abfi:h?lptuvVw")) != -1){
+	while((opt = getopt(argc, argv, "abfi:hk?lptuvVw")) != -1){
 		switch(opt){
 		case 'a':
 			/* Modify all available logs */
-			wipeAll = 1;
+			acctlog = utmplog = wtmplog = btmplog = lastlog = 1;
+			faillog = authlog = 1;
 			break;
 
 		case 'b':
@@ -734,6 +850,11 @@ int main(int argc, char *argv[]){
 		case 'i':
 			/* Remove activity from this host */
 			host = optarg;
+			break;
+
+		case 'k':
+			/* Back up original log files to current directory */
+			backup = 1;
 			break;
 
 		case 'l':
@@ -800,28 +921,35 @@ int main(int argc, char *argv[]){
 		return(1);
 	}
 
+
+	/* If back up mode is enabled, back up each selected log file
+	 * to the current directory. */
+	if(backup)
+		backup_files(wtmplog, utmplog, btmplog, lastlog, faillog,
+				acctlog, authlog);
+
 	/* Check each flag individually so that any combination of log files
 	 * can be specified on the command line */
-	if(utmplog || wipeAll){
+	if(utmplog){
 		wipe_utmp(username, host, UTMPFILE);
 	}
 
-	if(wtmplog || wipeAll){
+	if(wtmplog){
 		wipe_utmp(username, host, WTMPFILE);
 	}
-	if(btmplog || wipeAll){
+	if(btmplog){
 		wipe_utmp(username, host, BTMPFILE);
 	}
-	if(lastlog || wipeAll){
+	if(lastlog){
 		wipe_last(username, host, LASTLOGFILE);
 	}
-	if(faillog || wipeAll){
+	if(faillog){
 		wipe_fail(username, FAILLOGFILE);
 	}
-	if(authlog || wipeAll){
+	if(authlog){
 		wipe_auth(username, AUTHFILE);
 	}
-	if(acctlog || wipeAll){
+	if(acctlog){
 		wipe_acct(username, ACCTFILE);
 	}
 
