@@ -18,8 +18,7 @@ supports.
 
 This program is currently released as a beta version and as such is
 currently undergoing active development. New features are still being added
-and functionality is constantly being improved. Also, check back frequently
-for new versions.
+and functionality is constantly being improved.
 
 **Common log file location - Description**
 
@@ -91,9 +90,18 @@ There is no install target in the Makefile to install the binary on a system.
 This is intentional.
 
 
+**Utilities**
+
+The utils folder contains several programs that are useful for examining
+log files. To compile them just change in the utils directory and run
+`make` These programs show more/different information usually than their
+standard counterparts, e.g. who, w, etc.
+
+
 **To Do**
 
 - [x] Add a backup option to back up the original log files
+- [ ] Add option to only wipe entries created in the last N days
 - [ ] Add an option to allow logs to be wiped by tty
 
 
