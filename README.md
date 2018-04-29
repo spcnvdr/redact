@@ -78,6 +78,11 @@ pertaining to the user named john
 
     ./redact -w john
 
+Wipe all log entries in the wtmp log file pertaining to the user john that
+were created within the last 30 days. Also with verbose mode enabled.
+
+    ./redact -v -w -d 30 john
+
 When finished, run the following command to delete the compiled program
 and any intermediary object files
 

@@ -1,10 +1,34 @@
+redact (0.8.7); urgency=low;
+  * Added a new option, -d which causes redact to only remove log entries
+    created in the last N days. The number of days being specified by
+    the user. For example, to only wipe entries created in the last
+    30 days, a user would run the program like so:
+    "./redact -a -d 30 USERNAME"
+    However, with this new option comes some issues. The main issue is
+    that the auth.log file does not contain the year in its timestamps,
+    so we infer the year based on the last modification time of the
+    auth.log log file. Also, to convert the string into a time required
+    the use of a somewhat uncommon function, strptime(). This may or
+    may not limit the program on how many systems it compiles on.
+    Finally, if the auth.log file time stamp format is different than
+    what is expected, it will fail to wipe entries based on age
+    in the auth.log file. The code may need some cleaning up as it was
+    kind of hacked in.
+  * Fixed some unnecessary use of defined constants.
+  * Fixed a logic error that let errors occur silently
+  * Improved the help screen to hopefully make it clearer which options
+    require arguments and what kind they accept.
+  * Added an example of using the -d option to the README.md file. 
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Sun, 29 Apr 2018 16:06:01 -0500
+
 redact (0.8.6); urgency=low;
   * Changed redact to not leave core files in the event of a failure.
   * Added the -k option to back up the original log files before wiping
     them. The files are backed up to the current working directory.
   * Changed wipe_acct() to no longer print a message when exiting via the
     bail() function.
-  * Removed an unneeded variable. 
+  * Removed an unneeded variable.
 
   -- Bryan Hawkins <spcnvdrr@protonmail.com> Thu, 12 Apr 2018 11:32:04 -0500
 

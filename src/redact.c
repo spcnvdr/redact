@@ -34,6 +34,7 @@
  * log file is then copied over the original log file. It should go without  *
  * saying, but since this program modifies log files, it must be run as root *
  *****************************************************************************/
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -52,7 +53,7 @@
 #include "proc_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.8.6";
+static char *version = "redact 0.8.7";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -68,9 +69,12 @@ static char *version = "redact 0.8.6";
 #define MAXLINE	        4096
 #define FILE_MODE       (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 #define BUFF_SIZE       (128*1024)
+#define DAY_SECONDS		86400
 
 /* Global option for verbose mode */
 int verboseMode = 0;
+int daysMode = 0;
+time_t since;
 
 /*
  * The login failure file is maintained by login(1) and faillog(8)
@@ -93,13 +97,14 @@ struct faillog{
  *
  */
 static void usage(void){
-    fprintf(stderr, "Usage: redact [OPTION]... USERNAME\n");
+    fprintf(stderr, "Usage: redact [-abfhlptuvVw] [-d days] [-i host]...USERNAME\n");
     fprintf(stderr, "Wipe USERNAME from the system logs.\n\n");
     fprintf(stderr, "   -a                Wipe all available log files\n");
     fprintf(stderr, "   -b                Wipe the btmp log file\n");
+    fprintf(stderr, "   -d DAYS           Only wipe entries created in the last N days\n");
     fprintf(stderr, "   -f                Wipe the faillog log file\n");
     fprintf(stderr, "   -h, -?            Display this help and exit\n");
-    fprintf(stderr, "   -i                Remove entries containing this hostname\n");
+    fprintf(stderr, "   -i HOST           Remove entries containing this hostname\n");
     fprintf(stderr, "   -k                Keep/backup original log files\n");
     fprintf(stderr, "   -l                Wipe the lastlog log file\n");
     fprintf(stderr, "   -p                Wipe process accounting logs\n");
@@ -374,6 +379,56 @@ static void backup_files(int wtmp, int utmp, int btmp, int lastlog,
 }
 
 
+/** Extract the date from an auth.log entry and convert to a time_t
+ * @param str The auth.log entry to parse
+ * @param logfile Path of the auth.log log file
+ * @returns The time the log entry was made as a time_t or -1 on error
+ * Note: Since auth.log entries don't contain the year,
+ * we use the time of the log file's last modification date
+ * to determine the year.
+ * Below is an example format the entry must be in:
+ * "Apr 28 14:28:09 host pkexec:....."
+ * The first 15 characters MUST be the date and in that format.
+ *
+ */
+static time_t extract_time(const char *str, const char *logfile){
+	static struct stat sbuf;
+	static int done = 0;
+	struct tm *local;
+	struct tm tm;
+	char buf[20];
+	time_t date;
+
+	/* Only get the year once */
+	if(done == 0){
+		if(stat(logfile, &sbuf) < 0){
+			perror("stat() error");
+			return(-1);
+		}
+		done++;
+	}
+
+	if((local = localtime(&sbuf.st_mtime)) == NULL){
+		perror("localtime() error");
+		return(-1);
+	}
+
+	memcpy(buf, str, 15);
+	buf[16] = '\0';
+
+	strptime(buf, "%b %d %H:%M:%S", &tm);
+	tm.tm_year = local->tm_year;
+	tm.tm_isdst = local->tm_isdst;
+
+	if((date = mktime(&tm)) < 0){
+		perror("mktime() error");
+		return(-1);
+	}
+
+	return(date);
+}
+
+
 /** Remove all entries containing username from a log file
  * that uses utmp data structures, e.g. wtmp, utmp, etc.
  * @param username The username to search entries for
@@ -417,6 +472,20 @@ static void wipe_utmp(const char *username, const char *host, const char *logfil
 	 * that contain the username or host */
 	while(fread(&ut, utsize, 1, fin) == 1){
 		num++;				/* total number of entries found */
+
+		if(daysMode && ut.ut_tv.tv_sec < since){
+			/* Entry is too old, skip it */
+			if(fwrite(&ut, utsize, 1, fout) != 1){
+					perror("fwrite() error");
+					fclose(fin);
+					fclose(fout);
+					unlink(tmpfile);		/* Delete our temporary file */
+					free(tmpfile);
+					exit(EXIT_FAILURE);
+
+			}
+			continue;
+		}
 
 		/* Wipe entries by host, else by username */
 		if(host != NULL && strcmp(ut.ut_host, host) == 0){
@@ -537,6 +606,11 @@ static void wipe_last(const char *username, const char *host, const char *logfil
 	if(host != NULL){
 		while(fread(&llbuf, llsize, 1, fin) == 1){
 			num++;
+
+			/* Skip entry if it is too old */
+			if(daysMode && llbuf.ll_time < since)
+				continue;
+
 			if(strcmp(llbuf.ll_host, host) == 0){
 				found++;
 				/* Rewind the cursor, then wipe the entry */
@@ -554,7 +628,7 @@ static void wipe_last(const char *username, const char *host, const char *logfil
 
 		if(verboseMode)
 			printf("Redacted %zu out of %zu records in %s\n",
-				found, --num, LASTLOGFILE);
+				found, --num, logfile);
 
 	} else {
 		/* The lastlog file is indexed by user ID, so find the entry
@@ -563,6 +637,23 @@ static void wipe_last(const char *username, const char *host, const char *logfil
 			perror("fseek() error");
 			fclose(fin);
 			exit(EXIT_FAILURE);
+		}
+
+		if(daysMode){
+			if(fread(&llbuf, llsize, 1, fin) != 1){
+				perror("fread() error");
+				fclose(fin);
+				return;
+			}
+			if(llbuf.ll_time < since){
+				if(verboseMode)
+					printf("Redacted 0 records in %s\n", logfile);
+				fclose(fin);
+				return;
+			} else {
+				/* Entry is recent enough, rewind file pointer to wipe it */
+				fseek(fin, (long)-llsize, SEEK_CUR);
+			}
 		}
 
 		/* Empty the structure, which is the default for a user who
@@ -575,7 +666,7 @@ static void wipe_last(const char *username, const char *host, const char *logfil
 		}
 
 		if(verboseMode)
-			printf("Redacted 1 record in %s\n", LASTLOGFILE);
+			printf("Redacted 1 record in %s\n", logfile);
 	}
 
 	fclose(fin);
@@ -594,7 +685,7 @@ static void wipe_fail(const char *username, const char *logfile){
 	size_t flsize = sizeof(struct faillog);
 
 	if((fin = fopen(logfile, "r+")) == NULL){
-		fprintf(stderr, "error opening %s log file: %s\n", FAILLOGFILE,
+		fprintf(stderr, "error opening %s log file: %s\n", logfile,
 				strerror(errno));
 		return;
 	}
@@ -613,6 +704,25 @@ static void wipe_fail(const char *username, const char *logfile){
 
 	}
 
+	/* If we are wiping entries created within the last N days */
+	if(daysMode){
+		if(fread(&fbuf, flsize,  1, fin) != 1){
+			perror("fread() error");
+			fclose(fin);
+			exit(EXIT_FAILURE);
+		}
+		if(fbuf.fail_time < since){
+			if(verboseMode)
+				printf("Redacted 0 records in %s\n", logfile);
+			fclose(fin);
+			return;
+		} else {
+			/* Entry is recent enough, wipe it */
+			fseek(fin, (long)-flsize, SEEK_CUR);
+		}
+	}
+
+	/* Write an empty log entry */
 	memset(&fbuf, 0, flsize);
 
 	if(fwrite(&fbuf, flsize, 1, fin) != 1){
@@ -624,7 +734,7 @@ static void wipe_fail(const char *username, const char *logfile){
 	fclose(fin);
 
 	if(verboseMode)
-		printf("Redacted 1 record in %s\n", FAILLOGFILE);
+		printf("Redacted 1 record in %s\n", logfile);
 
 	return;
 }
@@ -668,6 +778,20 @@ static void wipe_acct(const char *username, const char *logfile){
 
 	while(fread(&acbuf, acsize, 1, fin) == 1){
 		num++;
+
+		if(daysMode && acbuf.ac_btime < since){
+			/* entry is too old, do not wipe it */
+			if(fwrite(&acbuf, acsize, 1, fout) != 1){
+				perror("fwrite() error");
+				fclose(fin);
+				fclose(fout);
+				unlink(tmpfile);
+				free(tmpfile);
+				exit(EXIT_FAILURE);
+			}
+			continue;
+		}
+
 		if(acbuf.ac_uid == userid){
 			found++;
 			continue;
@@ -732,6 +856,7 @@ static void wipe_auth(const char *username, const char *logfile){
 	char *tmpfile;
 	size_t num = 0;
 	size_t found = 0;
+	time_t entime;
 
 	if(get_userid(username, &userid) < 0)
 		exit(EXIT_FAILURE);
@@ -761,6 +886,23 @@ static void wipe_auth(const char *username, const char *logfile){
 	while(fgets(buf, MAXLINE, fin) != NULL){
 		num++;
 		if(strstr(buf, username) != NULL || strstr(buf, idstr) != NULL){
+
+			if(daysMode){
+				if((entime = extract_time(buf, logfile)) < 0){
+					fclose(fin);
+					fclose(fout);
+					unlink(tmpfile);
+					free(tmpfile);
+					return;
+				}
+
+				if(entime < since){
+					/* entry is too old, don't wipe */
+					fputs(buf, fout);
+					continue;
+				}
+			}
+
 			found++;
 			continue;
 		} else {
@@ -808,7 +950,7 @@ static void wipe_auth(const char *username, const char *logfile){
 }
 
 /**
- * Usage: redact [-abfhlptuvVw] [-i host]... USERNAME
+ * Usage: redact [-abfhlptuvVw] [-d days] [-i host]... USERNAME
  * Wipe USERNAME from the system logs.
  * Use -a to wipe all the log files redact knows about or
  * specify the log files individually by using the other options.
@@ -818,6 +960,7 @@ static void wipe_auth(const char *username, const char *logfile){
 int main(int argc, char *argv[]){
 	int acctlog = 0, utmplog = 0, wtmplog = 0, btmplog = 0;
 	int lastlog = 0, faillog = 0, authlog = 0, backup = 0, opt;
+	int numdays;
 	char *host = NULL, *username = NULL;
 	struct rlimit rl;
 	uid_t eid;
@@ -829,7 +972,7 @@ int main(int argc, char *argv[]){
 		perror("rlimit() error");
 
 	/* Process the command line options */
-	while((opt = getopt(argc, argv, "abfi:hk?lptuvVw")) != -1){
+	while((opt = getopt(argc, argv, "abd:fi:hk?lptuvVw")) != -1){
 		switch(opt){
 		case 'a':
 			/* Modify all available logs */
@@ -840,6 +983,25 @@ int main(int argc, char *argv[]){
 		case 'b':
 			/* Wipe btmp log file */
 			btmplog = 1;
+			break;
+
+		case 'd':
+			/* Only remove entries created in the last N days */
+			daysMode = 1;
+			numdays = atoi(optarg);
+			if(numdays <= 0 || numdays >= 1001){
+				fprintf(stderr, "Error: invalid number of days (1 - 1000)\n");
+				usage();
+			}
+
+			/* Get the current time since Epoch */
+			if((since = time(NULL)) < 0){
+				perror("time() error");
+				exit(EXIT_FAILURE);
+			}
+
+			/* Calculate the time to compare log entries to */
+			since -= (numdays * DAY_SECONDS);
 			break;
 
 		case 'f':
