@@ -106,7 +106,7 @@ standard counterparts, e.g. who, w, etc.
 **To Do**
 
 - [x] Add a backup option to back up the original log files
-- [ ] Add option to only wipe entries created in the last N days
+- [x] Add option to only wipe entries created in the last N days
 - [ ] Add an option to allow logs to be wiped by tty
 
 
