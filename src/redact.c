@@ -53,7 +53,7 @@
 #include "proc_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.8.7";
+static char *version = "redact 0.8.8";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -149,16 +149,62 @@ static int clone_attrs(const char *src, const char *dst){
 }
 
 
+/** Securely delete the specified file from disk
+ * @param filename The path of the file to shred
+ * @returns 0 on success, -1 on error
+ * @note This function will delete/unlink the file
+ * even if it failed to overwrite the contents or
+ * truncate the file.
+ */
+static int shred(const char *filename){
+	int fd;
+	ssize_t i;
+	char buf[4096];
+	struct stat sbuf;
+
+	if(stat(filename, &sbuf) < 0){
+		perror("stat() error");
+		return(-1);
+	}
+
+	memset(buf, '\0', 4096);
+
+	if((fd = open(filename, O_WRONLY)) < 0){
+		perror("open() error");
+	} else {
+		for(i = 0; i < sbuf.st_size; i += 4096){
+			if(write(fd, buf, 4096) != 4096){
+				perror("write() error");
+				close(fd);
+				return(-1);
+			}
+		}
+		close(fd);
+	}
+
+	if(truncate(filename, 0) < 0)
+		perror("truncate error");
+
+	if(unlink(filename) < 0){
+		perror("unlink() error");
+		return(-1);
+	}
+
+	return(0);
+}
+
+
 /** Move file from src to dst
  * @param src The path of the file to move
  * @param dst The path to move src to
  * @returns 0 on success, -1 on error
+ * @note src is permanently deleted.
  *
  */
 static int move_file(const char *src, const char *dst){
 
-	/* This unlink is not needed, but done just to be sure */
-	if(unlink(dst) < 0){
+	/* Securely delete the file to be replaced */
+	if(shred(dst) < 0){
 		perror("unlink() error");
 		return(-1);
 	}

@@ -1,3 +1,10 @@
+redact (0.8.8); urgency=low;
+  * Added a function to delete files in a more secure manner. Now
+    the old log files are securely deleted in order to make forensic
+    recovery of the original log files difficult.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Tue, 01 May 2018 10:06:10 -0500
+
 redact (0.8.7); urgency=low;
   * Added a new option, -d which causes redact to only remove log entries
     created in the last N days. The number of days being specified by
@@ -18,7 +25,7 @@ redact (0.8.7); urgency=low;
   * Fixed a logic error that let errors occur silently
   * Improved the help screen to hopefully make it clearer which options
     require arguments and what kind they accept.
-  * Added an example of using the -d option to the README.md file. 
+  * Added an example of using the -d option to the README.md file.
 
   -- Bryan Hawkins <spcnvdrr@protonmail.com> Sun, 29 Apr 2018 16:06:01 -0500
 
