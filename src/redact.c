@@ -53,7 +53,7 @@
 #include "proc_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.8.8";
+static char *version = "redact 0.8.9";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -427,37 +427,20 @@ static void backup_files(int wtmp, int utmp, int btmp, int lastlog,
 
 /** Extract the date from an auth.log entry and convert to a time_t
  * @param str The auth.log entry to parse
- * @param logfile Path of the auth.log log file
+ * @param local A tm structure containing the last time the log was modified
  * @returns The time the log entry was made as a time_t or -1 on error
  * Note: Since auth.log entries don't contain the year,
- * we use the time of the log file's last modification date
+ * we use the tm structure of the log file's last modification date
  * to determine the year.
  * Below is an example format the entry must be in:
  * "Apr 28 14:28:09 host pkexec:....."
  * The first 15 characters MUST be the date and in that format.
  *
  */
-static time_t extract_time(const char *str, const char *logfile){
-	static struct stat sbuf;
-	static int done = 0;
-	struct tm *local;
-	struct tm tm;
+static time_t extract_time(const char *str, const struct tm *local){
+	struct tm tm = {0};
 	char buf[20];
 	time_t date;
-
-	/* Only get the year once */
-	if(done == 0){
-		if(stat(logfile, &sbuf) < 0){
-			perror("stat() error");
-			return(-1);
-		}
-		done++;
-	}
-
-	if((local = localtime(&sbuf.st_mtime)) == NULL){
-		perror("localtime() error");
-		return(-1);
-	}
 
 	memcpy(buf, str, 15);
 	buf[16] = '\0';
@@ -902,8 +885,23 @@ static void wipe_auth(const char *username, const char *logfile){
 	char *tmpfile;
 	size_t num = 0;
 	size_t found = 0;
+	struct stat sbuf;
+	struct tm *lastmod;
 	time_t entime;
 
+	/* Get the last modification time and convert to a
+	 * tm struct for extract_time() */
+	if(stat(logfile, &sbuf) < 0){
+		perror("stat() error");
+		exit(EXIT_FAILURE);
+	}
+
+	if((lastmod = localtime(&sbuf.st_mtime)) == NULL){
+		perror("localtime() error");
+		exit(EXIT_FAILURE);
+	}
+
+	/* Get the user ID of username */
 	if(get_userid(username, &userid) < 0)
 		exit(EXIT_FAILURE);
 
@@ -934,7 +932,7 @@ static void wipe_auth(const char *username, const char *logfile){
 		if(strstr(buf, username) != NULL || strstr(buf, idstr) != NULL){
 
 			if(daysMode){
-				if((entime = extract_time(buf, logfile)) < 0){
+				if((entime = extract_time(buf, lastmod)) < 0){
 					fclose(fin);
 					fclose(fout);
 					unlink(tmpfile);

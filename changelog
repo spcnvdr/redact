@@ -1,3 +1,10 @@
+redact (0.8.9); urgency=low;
+  * Fixed a bug in the extract_time function that caused valgrind to
+    complain about an uninitialized variable.
+  * Made a minor change to the extract_function.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Thu, 03 May 2018 14:53:18 -0500
+
 redact (0.8.8); urgency=low;
   * Added a function to delete files in a more secure manner. Now
     the old log files are securely deleted in order to make forensic
