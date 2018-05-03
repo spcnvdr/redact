@@ -28,8 +28,9 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
  *                                                                           *
- * Print some basic information from a system's utmp/wtmp/btmp Shows a       *
- * little more information than other commands.                              *
+ * Dump the faillog file which contains information about the last time a    *
+ * user failed to login. Like the lastlog file, entries are index by the     *
+ * user ID. The file on Linux is usually found at: /var/log/faillog          *
  *****************************************************************************/
 #include <stdio.h>
 #include <errno.h>
@@ -39,56 +40,56 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <utmp.h>
 #include <time.h>
 
-const char *type[] = {
-    "EMPTY", "RUN_LVL", "BOOT_TIME", "NEW_TIME", "OLD_TIME",
-    "INIT_PROCESS", "LOGIN_PROCESS", "USER_PROCESS", "DEAD_PROCESS",
-    "ACCOUNTING", ""
+/* The format of the faillog struct. Stolen from the
+ * shadow source code. */
+struct faillog{
+    short fail_cnt;         /* failures since last success */
+    short fail_max;         /* failures before turning account off */
+    char fail_line[12];     /* last failure occured here */
+    time_t fail_time;       /* last failure occured then */
+    /*
+     * If nonzero, the account will be re-enabled if there are no
+     * failures for fail_locktime seconds since last
+     * failure.
+     */
+    long fail_locktime;
 };
 
-
-/** Print some basic info. about the given utmp record 
- * @param rec the utmp structure to print information from
- *
- */
-void print_record(struct utmp rec){
-    time_t time = rec.ut_tv.tv_sec;
-    struct tm *tmbuf = localtime(&time);
-    char strbuf[250];
-    strftime(strbuf, 250, "%a %b %d %H:%M:%S %z %Y", tmbuf);
-    printf("type: %-13s user: %-10s line: %-8s host: %-10s pid: %-4u  ",
-        type[rec.ut_type], rec.ut_user, rec.ut_line, rec.ut_host, rec.ut_pid);
-    printf("time: %s\n", strbuf);
-
-}
-
 int main(int argc, char *argv[]){
-    int fin;
-    struct utmp tmp;
-    size_t size = sizeof(struct utmp);
-    size_t num = 0;
-
     if(argc != 2){
-        fprintf(stderr, "Usage: %s <u/w/btmp logfile>\n", argv[0]);
-        fprintf(stderr, "Dump the entries in the u/w/btmp log files\n");
+        fprintf(stderr, "Usage: %s <faillog file>\n", argv[0]);
+        fprintf(stderr, "Dump the faillog log file\n");
         return(1);
     }
 
-    if((fin = open(argv[1], O_RDONLY)) < 0){
-        perror("open error");
+    int fd;
+    char str[80];
+    time_t tmptime;
+    size_t index = 0;
+    struct tm *tmbuf;
+    struct faillog fbuf = {0};
+
+    if((fd = open(argv[1], O_RDONLY)) < 0){
+        perror("open() error");
         return(1);
     }
 
-    /* While we continue to read records, print the record */
-    while(read(fin, &tmp, size) == (ssize_t)size){
-        printf("%zu: ", ++num);
-        print_record(tmp);
+    while((read(fd, (void *)&fbuf, sizeof(fbuf)) == sizeof(fbuf))){
+        tmptime = fbuf.fail_time;
+        tmbuf = localtime(&tmptime);
+        strftime(str, 80, "%a %b %d %H:%M:%S %z %Y", tmbuf);
+
+        printf("index: %zu fail_cnt: %d fail_max: %d fail_line: %s "
+        " fail_time: %s fail_locktime: %ld\n",
+        index, fbuf.fail_cnt, fbuf.fail_max, fbuf.fail_line, str,
+        fbuf.fail_locktime);
+
+        index++;
     }
 
-    printf("Found %zu records\n", num);
-
-    close(fin);
+    close(fd);
     return(0);
+
 }

@@ -28,67 +28,57 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
  *                                                                           *
- * Print some basic information from a system's utmp/wtmp/btmp Shows a       *
- * little more information than other commands.                              *
+ * Dumps some basic information from the process accounting log files.       *
+ * Usually found on Linux in /var/log/account/pacct                          *
  *****************************************************************************/
 #include <stdio.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <utmp.h>
 #include <time.h>
+#include <sys/acct.h>
 
-const char *type[] = {
-    "EMPTY", "RUN_LVL", "BOOT_TIME", "NEW_TIME", "OLD_TIME",
-    "INIT_PROCESS", "LOGIN_PROCESS", "USER_PROCESS", "DEAD_PROCESS",
-    "ACCOUNTING", ""
-};
-
-
-/** Print some basic info. about the given utmp record 
- * @param rec the utmp structure to print information from
- *
- */
-void print_record(struct utmp rec){
-    time_t time = rec.ut_tv.tv_sec;
-    struct tm *tmbuf = localtime(&time);
-    char strbuf[250];
-    strftime(strbuf, 250, "%a %b %d %H:%M:%S %z %Y", tmbuf);
-    printf("type: %-13s user: %-10s line: %-8s host: %-10s pid: %-4u  ",
-        type[rec.ut_type], rec.ut_user, rec.ut_line, rec.ut_host, rec.ut_pid);
-    printf("time: %s\n", strbuf);
-
-}
+#if defined(__FreeBSD__)
+#define acct acctv2
+#elif defined(__linux__)
+#define acct acct_v3
+#endif
 
 int main(int argc, char *argv[]){
-    int fin;
-    struct utmp tmp;
-    size_t size = sizeof(struct utmp);
-    size_t num = 0;
-
     if(argc != 2){
-        fprintf(stderr, "Usage: %s <u/w/btmp logfile>\n", argv[0]);
-        fprintf(stderr, "Dump the entries in the u/w/btmp log files\n");
+        fprintf(stderr, "Usage: %s <pacct file>\n", argv[0]);
+        fprintf(stderr, "Dump the process accounting log files\n");
         return(1);
     }
 
-    if((fin = open(argv[1], O_RDONLY)) < 0){
-        perror("open error");
+    struct acct acbuf;
+    size_t acsize = sizeof(struct acct);
+    size_t recnum = 0;
+    FILE *fin;
+    time_t tmptime;
+    struct tm *tmbuf;
+    char timestr[80];
+
+    if((fin = fopen(argv[1], "r")) == NULL){
+        perror("fopen() error");
         return(1);
     }
 
-    /* While we continue to read records, print the record */
-    while(read(fin, &tmp, size) == (ssize_t)size){
-        printf("%zu: ", ++num);
-        print_record(tmp);
+    while(fread(&acbuf, acsize, 1, fin) == 1){
+        recnum++;
+        tmptime = acbuf.ac_btime;
+        tmbuf = localtime(&tmptime);
+        strftime(timestr, 80, "%a %b %d %H:%M:%S %z %Y", tmbuf);
+        printf("uid: %u tty: %u command: %s time: %s\n", acbuf.ac_uid, acbuf.ac_tty,
+            acbuf.ac_comm, timestr);
+    }
+    if(ferror(fin) && !feof(fin)){
+        perror("fread() error");
+        fclose(fin);
+        return(1);
     }
 
-    printf("Found %zu records\n", num);
+    printf("Found %zu records\n", recnum);
 
-    close(fin);
+    fclose(fin);
     return(0);
 }
