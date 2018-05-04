@@ -53,7 +53,7 @@
 #include "proc_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.8.9";
+static char *version = "redact 0.9.0";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -69,17 +69,20 @@ static char *version = "redact 0.8.9";
 #define MAXLINE	        4096
 #define FILE_MODE       (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 #define BUFF_SIZE       (128*1024)
-#define DAY_SECONDS		86400
+#define DAY_SECONDS     86400
 
-/* Global option for verbose mode */
+/* Global option for verbose mode and -d DAYS mode */
 int verboseMode = 0;
 int daysMode = 0;
+
+/* Holds the time that log entries are compared against
+ * when we are removing only entries created in the last N days */
 time_t since;
 
 /*
  * The login failure file is maintained by login(1) and faillog(8)
  * Each record in the file represents a separate UID and the file
- * is indexed in that fashion.
+ * is indexed in that fashion. Taken from the shadow source code.
  */
 struct faillog{
     short fail_cnt;         /* failures since last success */
@@ -97,7 +100,7 @@ struct faillog{
  *
  */
 static void usage(void){
-    fprintf(stderr, "Usage: redact [-abfhlptuvVw] [-d days] [-i host]...USERNAME\n");
+    fprintf(stderr, "Usage: redact [-abfhlptuvVw] [-d DAYS] [-i HOST]...USERNAME\n");
     fprintf(stderr, "Wipe USERNAME from the system logs.\n\n");
     fprintf(stderr, "   -a                Wipe all available log files\n");
     fprintf(stderr, "   -b                Wipe the btmp log file\n");
@@ -159,6 +162,7 @@ static int clone_attrs(const char *src, const char *dst){
 static int shred(const char *filename){
 	int fd;
 	ssize_t i;
+	int ret = 0;
 	char buf[4096];
 	struct stat sbuf;
 
@@ -171,6 +175,7 @@ static int shred(const char *filename){
 
 	if((fd = open(filename, O_WRONLY)) < 0){
 		perror("open() error");
+		ret = -1;
 	} else {
 		for(i = 0; i < sbuf.st_size; i += 4096){
 			if(write(fd, buf, 4096) != 4096){
@@ -182,15 +187,17 @@ static int shred(const char *filename){
 		close(fd);
 	}
 
-	if(truncate(filename, 0) < 0)
+	if(truncate(filename, 0) < 0){
 		perror("truncate error");
+		ret = -1;
+	}
 
 	if(unlink(filename) < 0){
 		perror("unlink() error");
 		return(-1);
 	}
 
-	return(0);
+	return(ret);
 }
 
 
@@ -205,7 +212,7 @@ static int move_file(const char *src, const char *dst){
 
 	/* Securely delete the file to be replaced */
 	if(shred(dst) < 0){
-		perror("unlink() error");
+		fprintf(stderr, "Error securely deleting file: %s\n", dst);
 		return(-1);
 	}
 
@@ -226,19 +233,19 @@ static int move_file(const char *src, const char *dst){
  *
  */
 static char *get_dir(char *pathname){
-    char *n = strrchr(pathname, '/');
+	char *n = strrchr(pathname, '/');
 
-    if(n == NULL){
-    	pathname[0] = '.';
-    	pathname[1] = '\0';
-        return(pathname);
-    }
+	if(n == NULL){
+		pathname[0] = '.';
+		pathname[1] = '\0';
+		return(pathname);
+	}
 
-    /* Split the string into just the directory portion
-     * of pathname */
-    *n = '\0';
+	/* Split the string into just the directory portion
+	 * of pathname */
+	*n = '\0';
 
-    return(pathname);
+	return(pathname);
 }
 
 

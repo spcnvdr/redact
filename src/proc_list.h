@@ -30,12 +30,12 @@
  *                                                                           *
  * This file contains the function declarations for the proc_list linked     *
  * list. This is just a simple linked list that is used to keep track of     *
- * process IDs while wiping the wtmp log files. This is needed because       *
+ * TTYs while wiping the u/w/btmp log files. This is needed because          *
  * when a user logs out, wtmp copies that user's login entry and writes      *
  * it back to the wtmp file except the type is changed to DEAD_PROCESS       *
  * and the user name field in the struct is NUL'ed out/ empty. Since we      *
  * cannot find the user's logout entries by username, we must use            *
- * something else, hence keeping track of the user's login process ID.       *
+ * something else, hence keeping track of the user's tty.                    *
  * Below is an example of what wtmp does when a user named Fred logs in      *
  * and out on tty1:                                                          *
  * type: USER_PROCESS  user: Fred    tty: tty1 time: 03/06/2018 09:05:19     *
@@ -55,8 +55,8 @@
 #define MAXTTY	50
 
 struct proc_list{
-	char *proc_tty;			/* A string to hold ut_line */
-	struct proc_list *proc_next;	/* Pointer to next member in linked list */
+	char *proc_tty;	                /* A string to hold ut_line */
+	struct proc_list *proc_next;    /* Pointer to next member in linked list */
 };
 
 

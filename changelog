@@ -1,3 +1,10 @@
+redact (0.9.0); urgency=low;
+  * Changed the shred() function to always return -1 if an error occurred.
+  * Made changes to various comments.
+  * Updated README.md with information about new functionality. 
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Fri, 04 May 2018 16:55:41 -0500
+
 redact (0.8.9); urgency=low;
   * Fixed a bug in the extract_time function that caused valgrind to
     complain about an uninitialized variable.

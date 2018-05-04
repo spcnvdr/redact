@@ -29,7 +29,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
  *                                                                           *
  * This file contains the function definitions for the linked list used to   *
- * keep track of process IDs. This linked list is meant to be as simple and  *
+ * keep track of a user's TTY. This linked list is meant to be as simple and *
  * reusable as possible. Nodes are always added to the front/head of the     *
  * list because they are more likely to be searched for and removed first.   *
  *****************************************************************************/

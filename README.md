@@ -1,7 +1,7 @@
 # Redact - A Linux log wiping program
 
-Redact is a simple Linux program to remove a user's activity from
-common system log files. This program is different than most log
+Redact is a simple Linux program to remove some or all of a user's activity
+from common system log files. This program is different than most log
 wipers currently available in that it avoids common pitfalls when
 destroying log entries. Some wipe programs simply overwrite the matching
 log entries with zeros. However, there are programs that check the integrity
@@ -11,6 +11,11 @@ log file and entirely omitting specific entries which leaves no trace that
 the log files have been tampered with. The same permissions and user/group
 owners are applied to the new log file to avoid incorrect permissions or
 owners. Finally, the old log file is replaced with the newly sanitized one.
+The old log file is securely deleted before being replaced with the new
+log file. There is also an option to only wipe entries created in the last
+N days, e.g. the last 30 days. This allows only a portion of a user's activity
+to be wiped from the log file. Also, unlike other log wiping programs, there
+is an option to back up the unmodified log files before wiping log entries.
 Below is a list of the common Linux log files that this program currently
 supports.
 
@@ -38,8 +43,8 @@ and functionality is constantly being improved.
 
 **What Redact does not do**
 
-Note that while this program modifies the current log files to remove all
-traces of a given username/host it does NOT modify old caches of those log
+Note that while this program modifies the current log files to remove some or
+all traces of a given username/host it does NOT modify old caches of those log
 files. For example, this program does not and cannot wipe gzipped backups
 of old log files created by logrotate. Also, there maybe multiple log files
 because old copies are renamed in the format LOGNAME.1 and these files
@@ -107,7 +112,7 @@ standard counterparts, e.g. who, w, etc.
 
 - [x] Add a backup option to back up the original log files
 - [x] Add option to only wipe entries created in the last N days
-- [ ] Add an option to allow logs to be wiped by tty
+- [ ] ???
 
 
 **Contributing**
