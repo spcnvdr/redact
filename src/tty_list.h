@@ -48,8 +48,8 @@
  *****************************************************************************/
 #include <sys/types.h>
 
-#ifndef PROC_LIST_H_
-#define PROC_LIST_H_
+#ifndef TTY_LIST_H_
+#define TTY_LIST_H_
 
 /* Max length of string to store tty */
 #define MAXTTY	50
@@ -92,4 +92,4 @@ void delete_tty(struct tty_list **head, char *tty);
  */
 void free_list(struct tty_list **head);
 
-#endif /* PROC_LIST_H_ */
+#endif /* TTY_LIST_H_ */

@@ -1,7 +1,14 @@
+redact (0.9.1) urgency=low;
+  * Renamed the linked list and its source files to tty_list. This was
+    done to better describe the purpose of the linked list, which is to
+    store and track the user's TTYs.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Thu, 17 May 2018 13:11:28 -0500 
+
 redact (0.9.0); urgency=low;
   * Changed the shred() function to always return -1 if an error occurred.
   * Made changes to various comments.
-  * Updated README.md with information about new functionality. 
+  * Updated README.md with information about new functionality.
 
   -- Bryan Hawkins <spcnvdrr@protonmail.com> Fri, 04 May 2018 16:55:41 -0500
 
