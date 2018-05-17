@@ -1,3 +1,4 @@
+
 /*****************************************************************************
  * Copyright 2018 Bryan Hawkins <spcnvdrr@protonmail.com>                    *
  *                                                                           *
@@ -50,7 +51,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#include "proc_list.h"
+#include "tty_list.h"
 
 /* The version of this program using semantic versioning format */
 static char *version = "redact 0.9.0";
@@ -479,8 +480,8 @@ static void wipe_utmp(const char *username, const char *host, const char *logfil
 	struct utmp ut;
 	size_t utsize = sizeof(struct utmp);
 	char *tmpfile;
-	struct proc_list *head = NULL;
-	struct proc_list *tmpnode = NULL;
+	struct tty_list *head = NULL;
+	struct tty_list *tmpnode = NULL;
 
 	/* Flag to wipe next LOGIN_PROCESS entry */
 	int killLogin = 0;

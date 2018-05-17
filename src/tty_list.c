@@ -28,36 +28,17 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
  *                                                                           *
- * This file contains the function declarations for the proc_list linked     *
- * list. This is just a simple linked list that is used to keep track of     *
- * TTYs while wiping the u/w/btmp log files. This is needed because          *
- * when a user logs out, wtmp copies that user's login entry and writes      *
- * it back to the wtmp file except the type is changed to DEAD_PROCESS       *
- * and the user name field in the struct is NUL'ed out/ empty. Since we      *
- * cannot find the user's logout entries by username, we must use            *
- * something else, hence keeping track of the user's tty.                    *
- * Below is an example of what wtmp does when a user named Fred logs in      *
- * and out on tty1:                                                          *
- * type: USER_PROCESS  user: Fred    tty: tty1 time: 03/06/2018 09:05:19     *
- * type: DEAD_PROCESS  user:         tty: tty1 time: 03/06/2018 09:05:40     *
- * type: LOGIN_PROCESS user: LOGIN   tty: tty1 time: 03/06/2018 09:05:40     *
- *                                                                           *
- * Note: Generally, utmp structures have more fields than what is shown      *
- * in the small snippet above (pid, host, etc.), but it has been             *
- * condensed for readability                                                 *
+ * This file contains the function definitions for the linked list used to   *
+ * keep track of a user's TTY. This linked list is meant to be as simple and *
+ * reusable as possible. Nodes are always added to the front/head of the     *
+ * list because they are more likely to be searched for and removed first.   *
  *****************************************************************************/
+#include "tty_list.h"
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
 #include <sys/types.h>
-
-#ifndef PROC_LIST_H_
-#define PROC_LIST_H_
-
-/* Max length of string to store tty */
-#define MAXTTY	50
-
-struct proc_list{
-	char *proc_tty;	                /* A string to hold ut_line */
-	struct proc_list *proc_next;    /* Pointer to next member in linked list */
-};
 
 
 /** Create, initialize, and link in a new node with the given properties
@@ -65,7 +46,28 @@ struct proc_list{
  * @param tty the device name/tty to create node with, from ut_line
  *
  */
-void create_node(struct proc_list **head, char *tty);
+void create_node(struct tty_list **head, char *tty){
+	/* Allocate memory for the new node */
+	struct tty_list *new = malloc(sizeof(struct tty_list));
+	if(new == NULL){
+		perror("malloc() error");
+		exit(EXIT_FAILURE);
+	}
+
+	/* Allocate space to store the ut_line member of utmp structure */
+	new->tty_line = malloc(MAXTTY);
+	if(new->tty_line == NULL){
+		perror("malloc() error");
+		free(new);
+		exit(EXIT_FAILURE);
+	}
+
+	strncpy(new->tty_line, tty, MAXTTY);
+
+	/* Add the new node to the head of the list */
+	new->tty_next = (*head);
+	(*head) = new;
+}
 
 
 /** Find a node member with the given TTY value
@@ -74,7 +76,18 @@ void create_node(struct proc_list **head, char *tty);
  * @returns a pointer to the node or NULL if not found
  *
  */
-struct proc_list *find_tty(struct proc_list *head, char *tty);
+struct tty_list *find_tty(struct tty_list *head, char *tty){
+	while(head != NULL){
+		if(!(strcmp(head->tty_line, tty))){
+			/* We found the node */
+			return(head);
+		}
+		/* Continue looking... */
+		head = head->tty_next;
+	}
+	/* PID not found in list */
+	return(NULL);
+}
 
 
 /** Unlink and free a node from the list specified by the tty.
@@ -82,7 +95,24 @@ struct proc_list *find_tty(struct proc_list *head, char *tty);
  * @param tty the device name of the node to remove
  *
  */
-void delete_tty(struct proc_list **head, char *tty);
+void delete_tty(struct tty_list **head, char *tty){
+	struct tty_list *tmp = NULL;
+
+	while(*head != NULL){
+		if(!strcmp((*head)->tty_line, tty)){
+			/* Found the node */
+			tmp = (*head);
+			/* Remove the node and free it */
+			(*head) = (*head)->tty_next;
+			free(tmp->tty_line);
+			free(tmp);
+			return;
+		} else {
+			/* Keep looking... */
+			head = &((*head)->tty_next);
+		}
+	}
+}
 
 
 /** Free the entire list. Note that once a list is
@@ -90,6 +120,15 @@ void delete_tty(struct proc_list **head, char *tty);
  * @param head a double pointer to the head of the list
  *
  */
-void free_list(struct proc_list **head);
+void free_list(struct tty_list **head){
+	struct tty_list *tmp = *head;
+	while(*head != NULL){
+		*head = (*head)->tty_next;
+		free(tmp->tty_line);
+		free(tmp);
+		tmp = *head;
+	}
 
-#endif /* PROC_LIST_H_ */
+	/* Set the now empty list head to NULL */
+	*head = NULL;
+}
