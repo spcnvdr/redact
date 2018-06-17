@@ -511,7 +511,7 @@ static void wipe_utmp(const char *username, const char *host, const char *logfil
 		num++;				/* total number of entries found */
 
 		if(daysMode && ut.ut_tv.tv_sec < since){
-			/* Entry is too old, skip it */
+			/* Entry is too old, don't wipe it */
 			if(fwrite(&ut, utsize, 1, fout) != 1){
 					perror("fwrite() error");
 					fclose(fin);
@@ -543,6 +543,7 @@ static void wipe_utmp(const char *username, const char *host, const char *logfil
 
 			} else if(ut.ut_type == DEAD_PROCESS && ut.ut_user[0] == '\0'){
 				if((tmpnode = find_tty(head, ut.ut_line)) != NULL){
+					/* User logged in/out on tty, wipe entry */
 					found++;
 					/* Remove node from linked list */
 					delete_tty(&head, ut.ut_line);
@@ -682,7 +683,9 @@ static void wipe_last(const char *username, const char *host, const char *logfil
 				fclose(fin);
 				return;
 			}
+
 			if(llbuf.ll_time < since){
+				/* Found record is too old to wipe */
 				if(verboseMode)
 					printf("Redacted 0 records in %s\n", logfile);
 				fclose(fin);
