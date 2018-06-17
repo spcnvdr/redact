@@ -49,7 +49,7 @@ const char *type[] = {
 };
 
 
-/** Print some basic info. about the given utmp record 
+/** Print some basic info. about the given utmp record
  * @param rec the utmp structure to print information from
  *
  */
@@ -64,20 +64,52 @@ void print_record(struct utmp rec){
 
 }
 
+/** Print a simple help message and return
+ *
+ */
+void usage(void){
+    fprintf(stderr, "Usage: utmp_print FILE\n");
+    fprintf(stderr, "Dump the entries in the specified utmp/wtmp/btmp log file\n");
+    fprintf(stderr, "   -h,?               Display this help message\n");
+    fprintf(stderr, "\n");
+    return;
+}
+
 int main(int argc, char *argv[]){
     int fin;
+    int opt;
+    char *fname;
     struct utmp tmp;
-    size_t size = sizeof(struct utmp);
     size_t num = 0;
+    size_t size = sizeof(struct utmp);
 
-    if(argc != 2){
-        fprintf(stderr, "Usage: %s <u/w/btmp logfile>\n", argv[0]);
-        fprintf(stderr, "Dump the entries in the u/w/btmp log files\n");
+    while((opt = getopt(argc, argv, "h?")) != -1){
+        switch(opt){
+            case 'h':
+                /* fall through */
+            case '?':
+                usage();
+                return(0);
+                break;
+            default:
+                usage();
+                break;
+        }
+    }
+
+    /* Get the file name from argv */
+    fname = argv[optind];
+
+    /* Check if the user passed the file name */
+    if(fname == NULL){
+        fprintf(stderr, "%s: missing file operand\n", argv[0]);
+        fprintf(stderr, "Try 'utmp_print -h' for more information\n");
         return(1);
     }
 
-    if((fin = open(argv[1], O_RDONLY)) < 0){
-        perror("open error");
+    if((fin = open(fname, O_RDONLY)) < 0){
+        fprintf(stderr, "%s: failed to open %s: %s\n", argv[0], fname,
+            strerror(errno));
         return(1);
     }
 
