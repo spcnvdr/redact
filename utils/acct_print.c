@@ -36,6 +36,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/acct.h>
+#include <unistd.h>
 
 #if defined(__FreeBSD__)
 #define acct acctv2
@@ -43,13 +44,20 @@
 #define acct acct_v3
 #endif
 
-int main(int argc, char *argv[]){
-    if(argc != 2){
-        fprintf(stderr, "Usage: %s <pacct file>\n", argv[0]);
-        fprintf(stderr, "Dump the process accounting log files\n");
-        return(1);
-    }
+/** Print a simple help message and return
+ *
+ */
+void usage(void){
+    fprintf(stderr, "Usage: acct_print FILE\n");
+    fprintf(stderr, "Dump the entries in the specified process accounting (pacct) log file\n");
+    fprintf(stderr, "   -h,?               Display this help message\n");
+    fprintf(stderr, "\n");
+    return;
+}
 
+int main(int argc, char *argv[]){
+    int opt;
+    char *fname;
     struct acct acbuf;
     size_t acsize = sizeof(struct acct);
     size_t recnum = 0;
@@ -58,7 +66,31 @@ int main(int argc, char *argv[]){
     struct tm *tmbuf;
     char timestr[80];
 
-    if((fin = fopen(argv[1], "r")) == NULL){
+    while((opt = getopt(argc, argv, "h?")) != -1){
+        switch(opt){
+            case 'h':
+                /* fall through */
+            case '?':
+                usage();
+                return(0);
+                break;
+            default:
+                usage();
+                break;
+        }
+    }
+
+    /* Get the file name from argv */
+    fname = argv[optind];
+
+    /* Check if the user passed the file name */
+    if(fname == NULL){
+        fprintf(stderr, "%s: missing FILE operand\n", argv[0]);
+        fprintf(stderr, "Try 'acct_print -h' for more information\n");
+        return(1);
+    }
+
+    if((fin = fopen(fname, "r")) == NULL){
         perror("fopen() error");
         return(1);
     }

@@ -57,21 +57,52 @@ struct faillog{
     long fail_locktime;
 };
 
-int main(int argc, char *argv[]){
-    if(argc != 2){
-        fprintf(stderr, "Usage: %s <faillog file>\n", argv[0]);
-        fprintf(stderr, "Dump the faillog log file\n");
-        return(1);
-    }
+/** Print a simple help message and return
+ *
+ */
+void usage(void){
+    fprintf(stderr, "Usage: fail_print FILE\n");
+    fprintf(stderr, "Dump the entries in the specified lastlog log file\n");
+    fprintf(stderr, "   -h,?               Display this help message\n");
+    fprintf(stderr, "\n");
+    return;
+}
 
+int main(int argc, char *argv[]){
     int fd;
+    int opt;
+    char *fname;
     char str[80];
     time_t tmptime;
     size_t index = 0;
     struct tm *tmbuf;
     struct faillog fbuf = {0};
 
-    if((fd = open(argv[1], O_RDONLY)) < 0){
+    while((opt = getopt(argc, argv, "h?")) != -1){
+        switch(opt){
+            case 'h':
+                /* fall through */
+            case '?':
+                usage();
+                return(0);
+                break;
+            default:
+                usage();
+                break;
+        }
+    }
+
+    /* Get the file name from argv */
+    fname = argv[optind];
+
+    /* Check if the user passed the file name */
+    if(fname == NULL){
+        fprintf(stderr, "%s: missing FILE operand\n", argv[0]);
+        fprintf(stderr, "Try 'fail_print -h' for more information\n");
+        return(1);
+    }
+
+    if((fd = open(fname, O_RDONLY)) < 0){
         perror("open() error");
         return(1);
     }

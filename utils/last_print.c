@@ -60,18 +60,50 @@ void print_record(struct lastlog ent){
         ent.ll_line, ent.ll_host, str);
 }
 
+/** Print a simple help message and return
+ *
+ */
+void usage(void){
+    fprintf(stderr, "Usage: last_print FILE\n");
+    fprintf(stderr, "Dump the entries in the specified lastlog log file\n");
+    fprintf(stderr, "   -h,?               Display this help message\n");
+    fprintf(stderr, "\n");
+    return;
+}
+
 int main(int argc, char *argv[]){
-    int fd, ret;
+    int fd;
+    int ret;
+    int opt;
+    char *fname;
     size_t index = 0;
     struct lastlog lbuf = {0};
 
-    if(argc != 2){
-        fprintf(stderr, "Usage: %s <lastlog file>\n", argv[0]);
-        fprintf(stderr, "Dump the lastlog log file\n");
+    while((opt = getopt(argc, argv, "h?")) != -1){
+        switch(opt){
+            case 'h':
+                /* fall through */
+            case '?':
+                usage();
+                return(0);
+                break;
+            default:
+                usage();
+                break;
+        }
+    }
+
+    /* Get the file name from argv */
+    fname = argv[optind];
+
+    /* Check if the user passed the file name */
+    if(fname == NULL){
+        fprintf(stderr, "%s: missing FILE operand\n", argv[0]);
+        fprintf(stderr, "Try 'last_print -h' for more information\n");
         return(1);
     }
 
-    if((fd = open(argv[1], O_RDONLY)) < 0){
+    if((fd = open(fname, O_RDONLY)) < 0){
         perror("open() error");
         return(1);
     }

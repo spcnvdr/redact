@@ -102,7 +102,7 @@ int main(int argc, char *argv[]){
 
     /* Check if the user passed the file name */
     if(fname == NULL){
-        fprintf(stderr, "%s: missing file operand\n", argv[0]);
+        fprintf(stderr, "%s: missing FILE operand\n", argv[0]);
         fprintf(stderr, "Try 'utmp_print -h' for more information\n");
         return(1);
     }
