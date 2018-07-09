@@ -1,9 +1,16 @@
+redact (0.9.2) urgency=low;
+  * Moved the call to clone_attrs() into the move_file function to simplify
+    the code.
+  * Renamed some of the arguments to functions to make their use clearer.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Sun, 08 Jul 2018 20:11:41 -0500
+
 redact (0.9.1) urgency=low;
   * Renamed the linked list and its source files to tty_list. This was
     done to better describe the purpose of the linked list, which is to
     store and track the user's TTYs.
 
-  -- Bryan Hawkins <spcnvdrr@protonmail.com> Thu, 17 May 2018 13:11:28 -0500 
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Thu, 17 May 2018 13:11:28 -0500
 
 redact (0.9.0); urgency=low;
   * Changed the shred() function to always return -1 if an error occurred.

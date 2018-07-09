@@ -1,4 +1,3 @@
-
 /*****************************************************************************
  * Copyright 2018 Bryan Hawkins <spcnvdrr@protonmail.com>                    *
  *                                                                           *
@@ -54,7 +53,7 @@
 #include "tty_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.9.1";
+static char *version = "redact 0.9.2";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -202,22 +201,27 @@ static int shred(const char *filename){
 }
 
 
-/** Move file from src to dst
- * @param src The path of the file to move
- * @param dst The path to move src to
+/** Move file from from to to
+ * @param from The path of the file to move
+ * @param to The path to rename the file to
  * @returns 0 on success, -1 on error
  * @note src is permanently deleted.
  *
  */
-static int move_file(const char *src, const char *dst){
+static int move_file(const char *from, const char *to){
 
-	/* Securely delete the file to be replaced */
-	if(shred(dst) < 0){
-		fprintf(stderr, "Error securely deleting file: %s\n", dst);
+	/* Change from's owner and permissions to match to's */
+	if(clone_attrs(to, from) < 0){
 		return(-1);
 	}
 
-	if(rename(src, dst) < 0){
+	/* Securely delete the file to be replaced */
+	if(shred(to) < 0){
+		fprintf(stderr, "Error securely deleting file: %s\n", to);
+		return(-1);
+	}
+
+	if(rename(from, to) < 0){
 		perror("rename() error");
 		return(-1);
 	}
@@ -592,14 +596,6 @@ static void wipe_utmp(const char *username, const char *host, const char *logfil
 	fclose(fout);
 	free_list(&head);
 
-	/* Set the tmp file's uid, gid, and permissions to the
-	 * same as the original log file's */
-	if(clone_attrs(logfile, tmpfile) < 0){
-		unlink(tmpfile);
-		free(tmpfile);
-		exit(EXIT_FAILURE);
-	}
-
 	/* Finally, delete the old log file, and replace it with
 	 * the newly modified one */
 	if(move_file(tmpfile, logfile) < 0){
@@ -860,12 +856,6 @@ static void wipe_acct(const char *username, const char *logfile){
 	fclose(fin);
 	fclose(fout);
 
-	if(clone_attrs(logfile, tmpfile) < 0){
-		unlink(tmpfile);
-		free(tmpfile);
-		exit(EXIT_FAILURE);
-	}
-
 	if(move_file(tmpfile, logfile) < 0){
 		unlink(tmpfile);
 		free(tmpfile);
@@ -983,12 +973,6 @@ static void wipe_auth(const char *username, const char *logfile){
 
 	fclose(fin);
 	fclose(fout);
-
-	if(clone_attrs(logfile, tmpfile) < 0){
-		unlink(tmpfile);
-		free(tmpfile);
-		exit(EXIT_FAILURE);
-	}
 
 	if(move_file(tmpfile, logfile) < 0){
 		unlink(tmpfile);
