@@ -53,7 +53,7 @@
 #include "tty_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.9.2";
+static char *version = "redact 0.9.3";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
