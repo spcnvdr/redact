@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Copyright 2018 Bryan Hawkins <spcnvdrr@protonmail.com>                    *
+ * Copyright 2019 Bryan Hawkins <spcnvdrr@protonmail.com>                    *
  *                                                                           *
  * Redistribution and use in source and binary forms, with or without        *
  * modification, are permitted provided that the following conditions        *
@@ -306,7 +306,6 @@ static char *gen_tmpath(const char *logfile){
 		return(NULL);
 	}
 
-	srandom(time(NULL));
 	get_dir(ptr);
 
 	if(snprintf(tmpath, MAXLINE, "%s/.x%ld", ptr, random()&0x00ffffff) > 4096){
@@ -1009,6 +1008,9 @@ int main(int argc, char *argv[]){
 	rl.rlim_max = 0;
 	if(setrlimit(RLIMIT_CORE, &rl) < 0)
 		perror("rlimit() error");
+
+	/* Seed the random number generator */
+	srandom(time(NULL));
 
 	/* Process the command line options */
 	while((opt = getopt(argc, argv, "abd:fi:hk?lptuvVw")) != -1){

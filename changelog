@@ -1,3 +1,9 @@
+redact (0.9.3) urgency=low;
+  * Fixed a minor error in when to seed the random number generator.
+  * Updated year in the license.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Tue, 16 Jul 2019 07:47:52 -0500
+
 redact (0.9.2) urgency=low;
   * Moved the call to clone_attrs() into the move_file function to simplify
     the code.

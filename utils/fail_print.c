@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Copyright 2018 <spcnvdrr@protonmail.com>                                  *
+ * Copyright 2019 <spcnvdrr@protonmail.com>                                  *
  *                                                                           *
  * Redistribution and use in source and binary forms, with or without        *
  * modification, are permitted provided that the following conditions        *

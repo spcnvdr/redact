@@ -19,12 +19,6 @@ is an option to back up the unmodified log files before wiping log entries.
 Below is a list of the common Linux log files that this program currently
 supports.
 
-**This program is still undergoing development!**
-
-This program is currently released as a beta version and as such is
-currently undergoing active development. New features are still being added
-and functionality is constantly being improved.
-
 **Common log file location - Description**
 
 * /var/log/wtmp - Records all logins and logouts
@@ -112,7 +106,6 @@ standard counterparts, e.g. who, w, etc.
 
 - [x] Add a backup option to back up the original log files
 - [x] Add option to only wipe entries created in the last N days
-- [ ] ???
 
 
 **Contributing**
