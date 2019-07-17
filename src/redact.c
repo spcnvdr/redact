@@ -53,7 +53,7 @@
 #include "tty_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.9.3";
+static char *version = "redact 0.9.4";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -152,7 +152,7 @@ static int clone_attrs(const char *src, const char *dst){
 }
 
 
-/** Securely delete the specified file from disk
+/** Delete the specified file from disk and try to make recovery difficult
  * @param filename The path of the file to shred
  * @returns 0 on success, -1 on error
  * @note This function will delete/unlink the file
@@ -519,7 +519,7 @@ static void wipe_utmp(const char *username, const char *host, const char *logfil
 					perror("fwrite() error");
 					fclose(fin);
 					fclose(fout);
-					unlink(tmpfile);		/* Delete our temporary file */
+					shred(tmpfile);		/* Delete our temporary file */
 					free(tmpfile);
 					exit(EXIT_FAILURE);
 
@@ -572,7 +572,7 @@ static void wipe_utmp(const char *username, const char *host, const char *logfil
 			perror("fwrite() error");
 			fclose(fin);
 			fclose(fout);
-			unlink(tmpfile);		/* Delete our temporary file */
+			shred(tmpfile);		/* Delete our temporary file */
 			free(tmpfile);
 			exit(EXIT_FAILURE);
 
@@ -585,7 +585,7 @@ static void wipe_utmp(const char *username, const char *host, const char *logfil
 		perror("fread() error");
 		fclose(fin);
 		fclose(fout);
-		unlink(tmpfile);
+		shred(tmpfile);
 		free(tmpfile);
 		exit(EXIT_FAILURE);
 	}
@@ -598,7 +598,7 @@ static void wipe_utmp(const char *username, const char *host, const char *logfil
 	/* Finally, delete the old log file, and replace it with
 	 * the newly modified one */
 	if(move_file(tmpfile, logfile) < 0){
-		unlink(tmpfile);
+		shred(tmpfile);
 		free(tmpfile);
 		exit(EXIT_FAILURE);
 	}
@@ -820,7 +820,7 @@ static void wipe_acct(const char *username, const char *logfile){
 				perror("fwrite() error");
 				fclose(fin);
 				fclose(fout);
-				unlink(tmpfile);
+				shred(tmpfile);
 				free(tmpfile);
 				exit(EXIT_FAILURE);
 			}
@@ -835,7 +835,7 @@ static void wipe_acct(const char *username, const char *logfile){
 				perror("fwrite() error");
 				fclose(fin);
 				fclose(fout);
-				unlink(tmpfile);
+				shred(tmpfile);
 				free(tmpfile);
 				exit(EXIT_FAILURE);
 			}
@@ -847,7 +847,7 @@ static void wipe_acct(const char *username, const char *logfile){
 		perror("fread() error");
 		fclose(fin);
 		fclose(fout);
-		unlink(tmpfile);
+		shred(tmpfile);
 		free(tmpfile);
 		exit(EXIT_FAILURE);
 	}
@@ -856,7 +856,7 @@ static void wipe_acct(const char *username, const char *logfile){
 	fclose(fout);
 
 	if(move_file(tmpfile, logfile) < 0){
-		unlink(tmpfile);
+		shred(tmpfile);
 		free(tmpfile);
 		exit(EXIT_FAILURE);
 	}
@@ -935,7 +935,7 @@ static void wipe_auth(const char *username, const char *logfile){
 				if((entime = extract_time(buf, lastmod)) < 0){
 					fclose(fin);
 					fclose(fout);
-					unlink(tmpfile);
+					shred(tmpfile);
 					free(tmpfile);
 					return;
 				}
@@ -954,7 +954,7 @@ static void wipe_auth(const char *username, const char *logfile){
 				perror("fputs() error");
 				fclose(fin);
 				fclose(fout);
-				unlink(tmpfile);
+				shred(tmpfile);
 				free(tmpfile);
 				exit(EXIT_FAILURE);
 			}
@@ -965,7 +965,7 @@ static void wipe_auth(const char *username, const char *logfile){
 		perror("fgets() error");
 		fclose(fin);
 		fclose(fout);
-		unlink(tmpfile);
+		shred(tmpfile);
 		free(tmpfile);
 		exit(EXIT_FAILURE);
 	}
@@ -974,7 +974,7 @@ static void wipe_auth(const char *username, const char *logfile){
 	fclose(fout);
 
 	if(move_file(tmpfile, logfile) < 0){
-		unlink(tmpfile);
+		shred(tmpfile);
 		free(tmpfile);
 		exit(EXIT_FAILURE);
 	}

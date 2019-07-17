@@ -1,3 +1,9 @@
+redact (0.9.4) urgency=low;
+  * Changed the way temporary files are deleted.
+  * Fixed a minor typo in tty_list.c and README.md.
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Wed, 17 Jul 2019 06:09:59 -0500
+
 redact (0.9.3) urgency=low;
   * Fixed a minor error in when to seed the random number generator.
   * Updated year in the license.

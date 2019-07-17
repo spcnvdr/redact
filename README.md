@@ -11,7 +11,7 @@ log file and entirely omitting specific entries which leaves no trace that
 the log files have been tampered with. The same permissions and user/group
 owners are applied to the new log file to avoid incorrect permissions or
 owners. Finally, the old log file is replaced with the newly sanitized one.
-The old log file is securely deleted before being replaced with the new
+The old log file is deleted before being replaced with the new
 log file. There is also an option to only wipe entries created in the last
 N days, e.g. the last 30 days. This allows only a portion of a user's activity
 to be wiped from the log file. Also, unlike other log wiping programs, there
@@ -97,7 +97,7 @@ This is intentional.
 **Utilities**
 
 The utils folder contains several programs that are useful for examining
-log files. To compile them just change in the utils directory and run
+log files. To compile them, just change to the utils directory and run
 `make` These programs show more/different information usually than their
 standard counterparts, e.g. who, w, etc.
 
