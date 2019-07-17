@@ -28,7 +28,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS        *
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.              *
  *                                                                           *
- * This file contains the function declarations for the proc_list linked     *
+ * This file contains the function declarations for the tty_list linked     *
  * list. This is just a simple linked list that is used to keep track of     *
  * TTYs while wiping the u/w/btmp log files. This is needed because          *
  * when a user logs out, wtmp copies that user's login entry and writes      *
