@@ -53,7 +53,7 @@
 #include "tty_list.h"
 
 /* The version of this program using semantic versioning format */
-static char *version = "redact 0.9.4";
+static char *version = "redact 0.9.5";
 
 /* The locations of various log files on the system. Change these to
  * match the locations of log files on your system */
@@ -528,11 +528,11 @@ static void wipe_utmp(const char *username, const char *host, const char *logfil
 		}
 
 		/* Wipe entries by host, else by username */
-		if(host != NULL && strcmp(ut.ut_host, host) == 0){
+		if(host != NULL && memcmp(ut.ut_host, host, strlen(host)) == 0){
 			found++;
 			continue;
 		} else {
-			if(strcmp(ut.ut_user, username) == 0){
+			if(memcmp(ut.ut_user, username, strlen(username)) == 0){
 				if(ut.ut_type == USER_PROCESS){
 					/* Add to linked list and remove entry */
 					create_node(&head, ut.ut_line);

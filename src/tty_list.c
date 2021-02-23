@@ -55,7 +55,7 @@ void create_node(struct tty_list **head, char *tty){
 	}
 
 	/* Allocate space to store the ut_line member of utmp structure */
-	new->tty_line = malloc(MAXTTY);
+	new->tty_line = malloc(MAXTTY + 5);
 	if(new->tty_line == NULL){
 		perror("malloc() error");
 		free(new);

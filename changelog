@@ -1,3 +1,8 @@
+redact (0.9.5) urgency=medium;
+  * Fixed compiler warnings and verified function
+
+  -- Bryan Hawkins <spcnvdrr@protonmail.com> Tue, 23 Feb 2021 12:48:32 -0600
+
 redact (0.9.4) urgency=low;
   * Changed the way temporary files are deleted.
   * Fixed a minor typo in tty_list.c and README.md.
